@@ -31,7 +31,7 @@ Known to exist but not dumped:
 #include "audio/dcs.h"
 #include "machine/nvram.h"
 #include "includes/midvunit.h"
-#include "crusnusa.lh"
+//#include "crusnusa.lh"
 
 
 #define CPU_CLOCK       50000000
@@ -43,7 +43,18 @@ Known to exist but not dumped:
  *
  *************************************/
 
-void midvunit_state::machine_start()
+DEFINE_DEVICE_TYPE(MIDVUNIT_CRUSNUSA41, crusnusa41_device, "midvunit_crusnusa41", "Midway V-Unit (Cruis'n USA)")
+DEFINE_DEVICE_TYPE(MIDVUNIT_CRUSNUSA40, crusnusa40_device, "midvunit_crusnusa40", "Midway V-Unit (Cruis'n USA)")
+DEFINE_DEVICE_TYPE(MIDVUNIT_CRUSNUSA21, crusnusa21_device, "midvunit_crusnusa21", "Midway V-Unit (Cruis'n USA)")
+DEFINE_DEVICE_TYPE(MIDVUNIT_CRUSNWRD25, crusnwld25_device, "midvunit_crusnwld25", "Midway V-Unit (Cruis'n World)")
+DEFINE_DEVICE_TYPE(MIDVUNIT_CRUSNWRD24, crusnwld24_device, "midvunit_crusnwld24", "Midway V-Unit (Cruis'n World)")
+DEFINE_DEVICE_TYPE(MIDVUNIT_CRUSNWRD23, crusnwld23_device, "midvunit_crusnwld23", "Midway V-Unit (Cruis'n World)")
+DEFINE_DEVICE_TYPE(MIDVUNIT_CRUSNWRD20, crusnwld20_device, "midvunit_crusnwld20", "Midway V-Unit (Cruis'n World)")
+DEFINE_DEVICE_TYPE(MIDVUNIT_CRUSNWRD19, crusnwld19_device, "midvunit_crusnwld19", "Midway V-Unit (Cruis'n World)")
+DEFINE_DEVICE_TYPE(MIDVUNIT_CRUSNWRD17, crusnwld17_device, "midvunit_crusnwld17", "Midway V-Unit (Cruis'n World)")
+DEFINE_DEVICE_TYPE(MIDVUNIT_CRUSNWRD13, crusnwld13_device, "midvunit_crusnwld13", "Midway V-Unit (Cruis'n World)")
+
+void midvunit_device::device_start()
 {
 	save_item(NAME(m_cmos_protected));
 	save_item(NAME(m_control_data));
@@ -54,12 +65,13 @@ void midvunit_state::machine_start()
 	save_item(NAME(m_wheel_board_output));
 	save_item(NAME(m_wheel_board_last));
 	save_item(NAME(m_wheel_board_u8_latch));
+	save_item(NAME(m_link_data));
 
 	m_optional_drivers.resolve();
 }
 
 
-void midvunit_state::machine_reset()
+void midvunit_device::device_reset()
 {
 	m_dcs->reset_w(1);
 	m_dcs->reset_w(0);
@@ -69,7 +81,7 @@ void midvunit_state::machine_reset()
 }
 
 
-MACHINE_RESET_MEMBER(midvunit_state,midvplus)
+MACHINE_RESET_MEMBER(midvunit_device,midvplus)
 {
 	m_dcs->reset_w(1);
 	m_dcs->reset_w(0);
@@ -88,7 +100,7 @@ MACHINE_RESET_MEMBER(midvunit_state,midvplus)
  *
  *************************************/
 
-READ32_MEMBER(midvunit_state::port0_r)
+READ32_MEMBER(midvunit_device::port0_r)
 {
 	uint16_t val = ioport("IN0")->read();
 	uint16_t diff = val ^ m_last_port0;
@@ -116,7 +128,7 @@ READ32_MEMBER(midvunit_state::port0_r)
  *
  *************************************/
 
-READ32_MEMBER( midvunit_state::adc_r )
+READ32_MEMBER( midvunit_device::adc_r )
 {
 	if (!(m_control_data & 0x40))
 		return m_adc->read() << m_adc_shift;
@@ -126,7 +138,7 @@ READ32_MEMBER( midvunit_state::adc_r )
 	return 0xffffffff;
 }
 
-WRITE32_MEMBER( midvunit_state::adc_w )
+WRITE32_MEMBER( midvunit_device::adc_w )
 {
 	if (!(m_control_data & 0x20))
 		m_adc->write(data >> m_adc_shift);
@@ -142,20 +154,20 @@ WRITE32_MEMBER( midvunit_state::adc_w )
  *
  *************************************/
 
-WRITE32_MEMBER(midvunit_state::midvunit_cmos_protect_w)
+WRITE32_MEMBER(midvunit_device::midvunit_cmos_protect_w)
 {
 	m_cmos_protected = ((data & 0xc00) != 0xc00);
 }
 
 
-WRITE32_MEMBER(midvunit_state::midvunit_cmos_w)
+WRITE32_MEMBER(midvunit_device::midvunit_cmos_w)
 {
 	if (!m_cmos_protected)
 		COMBINE_DATA(m_nvram + offset);
 }
 
 
-READ32_MEMBER(midvunit_state::midvunit_cmos_r)
+READ32_MEMBER(midvunit_device::midvunit_cmos_r)
 {
 	return m_nvram[offset];
 }
@@ -168,7 +180,7 @@ READ32_MEMBER(midvunit_state::midvunit_cmos_r)
  *
  *************************************/
 
-WRITE32_MEMBER(midvunit_state::midvunit_control_w)
+WRITE32_MEMBER(midvunit_device::midvunit_control_w)
 {
 	uint16_t olddata = m_control_data;
 	COMBINE_DATA(&m_control_data);
@@ -183,12 +195,12 @@ WRITE32_MEMBER(midvunit_state::midvunit_control_w)
 	m_dcs->reset_w((~m_control_data >> 1) & 1);
 
 	/* log anything unusual */
-	if ((olddata ^ m_control_data) & ~0x00e8)
-		logerror("midvunit_control_w: old=%04X new=%04X diff=%04X\n", olddata, m_control_data, olddata ^ m_control_data);
+	//if ((olddata ^ m_control_data) & ~0x00e8)
+	//	logerror("midvunit_control_w: old=%04X new=%04X diff=%04X\n", olddata, m_control_data, olddata ^ m_control_data);
 }
 
 
-WRITE32_MEMBER(midvunit_state::crusnwld_control_w)
+WRITE32_MEMBER(midvunit_device::crusnwld_control_w)
 {
 	uint16_t olddata = m_control_data;
 	COMBINE_DATA(&m_control_data);
@@ -203,14 +215,14 @@ WRITE32_MEMBER(midvunit_state::crusnwld_control_w)
 	/* bit 8 is the LED */
 
 	/* log anything unusual */
-	if ((olddata ^ m_control_data) & ~0xe800)
-		logerror("crusnwld_control_w: old=%04X new=%04X diff=%04X\n", olddata, m_control_data, olddata ^ m_control_data);
+	//if ((olddata ^ m_control_data) & ~0xe800)
+	//	logerror("crusnwld_control_w: old=%04X new=%04X diff=%04X\n", olddata, m_control_data, olddata ^ m_control_data);
 }
 
 
-WRITE32_MEMBER(midvunit_state::midvunit_sound_w)
+WRITE32_MEMBER(midvunit_device::midvunit_sound_w)
 {
-	logerror("Sound W = %02X\n", data);
+	//logerror("Sound W = %02X\n", data);
 	m_dcs->data_w(data & 0xff);
 }
 
@@ -222,7 +234,7 @@ WRITE32_MEMBER(midvunit_state::midvunit_sound_w)
  *
  *************************************/
 
-READ32_MEMBER(midvunit_state::tms32031_control_r)
+READ32_MEMBER(midvunit_device::tms32031_control_r)
 {
 	/* watch for accesses to the timers */
 	if (offset == 0x24 || offset == 0x34)
@@ -235,14 +247,14 @@ READ32_MEMBER(midvunit_state::tms32031_control_r)
 	}
 
 	/* log anything else except the memory control register */
-	if (offset != 0x64)
-		logerror("%06X:tms32031_control_r(%02X)\n", m_maincpu->pc(), offset);
+	//if (offset != 0x64)
+	//	logerror("%06X:tms32031_control_r(%02X)\n", m_maincpu->pc(), offset);
 
 	return m_tms32031_control[offset];
 }
 
 
-WRITE32_MEMBER(midvunit_state::tms32031_control_w)
+WRITE32_MEMBER(midvunit_device::tms32031_control_w)
 {
 	COMBINE_DATA(&m_tms32031_control[offset]);
 
@@ -264,8 +276,8 @@ WRITE32_MEMBER(midvunit_state::tms32031_control_w)
 		else
 			m_timer_rate = 10000000.;
 	}
-	else
-		logerror("%06X:tms32031_control_w(%02X) = %08X\n", m_maincpu->pc(), offset, data);
+	//else
+	//	logerror("%06X:tms32031_control_w(%02X) = %08X\n", m_maincpu->pc(), offset, data);
 }
 
 
@@ -276,20 +288,20 @@ WRITE32_MEMBER(midvunit_state::tms32031_control_w)
  *
  *************************************/
 
-READ32_MEMBER(midvunit_state::crusnwld_serial_status_r)
+READ32_MEMBER(midvunit_device::crusnwld_serial_status_r)
 {
 	uint16_t in1 = (m_in1->read() & 0x7fff) | (m_midway_serial_pic->status_r() << 15);
 	return in1 | in1 << 16;
 }
 
 
-READ32_MEMBER(midvunit_state::crusnwld_serial_data_r)
+READ32_MEMBER(midvunit_device::crusnwld_serial_data_r)
 {
 	return m_midway_serial_pic->read() << 16;
 }
 
 
-WRITE32_MEMBER(midvunit_state::crusnwld_serial_data_w)
+WRITE32_MEMBER(midvunit_device::crusnwld_serial_data_w)
 {
 	if ((data & 0xf0000) == 0x10000)
 	{
@@ -317,7 +329,7 @@ static const uint32_t bit_data[0x10] =
 };
 
 
-READ32_MEMBER(midvunit_state::bit_data_r)
+READ32_MEMBER(midvunit_device::bit_data_r)
 {
 	int bit = (bit_data[m_bit_index / 32] >> (31 - (m_bit_index % 32))) & 1;
 	m_bit_index = (m_bit_index + 1) % 512;
@@ -325,7 +337,7 @@ READ32_MEMBER(midvunit_state::bit_data_r)
 }
 
 
-WRITE32_MEMBER(midvunit_state::bit_reset_w)
+WRITE32_MEMBER(midvunit_device::bit_reset_w)
 {
 	m_bit_index = 0;
 }
@@ -338,45 +350,45 @@ WRITE32_MEMBER(midvunit_state::bit_reset_w)
  *
  *************************************/
 
-READ32_MEMBER(midvunit_state::offroadc_serial_status_r)
+READ32_MEMBER(midvunit_device::offroadc_serial_status_r)
 {
 	uint16_t in1 = (m_in1->read() & 0x7fff) | (m_midway_serial_pic2->status_r() << 15);
 	return in1 | in1 << 16;
 }
 
 
-READ32_MEMBER(midvunit_state::offroadc_serial_data_r)
+READ32_MEMBER(midvunit_device::offroadc_serial_data_r)
 {
 	return m_midway_serial_pic2->read() << 16;
 }
 
 
-WRITE32_MEMBER(midvunit_state::offroadc_serial_data_w)
+WRITE32_MEMBER(midvunit_device::offroadc_serial_data_w)
 {
 	m_midway_serial_pic2->write(data >> 16);
 }
 
-READ32_MEMBER(midvunit_state::midvunit_wheel_board_r)
+READ32_MEMBER(midvunit_device::midvunit_wheel_board_r)
 {
 	//logerror("midvunit_wheel_board_r: %08X\n", m_wheel_board_output);
 	return m_wheel_board_output << 8;
 }
 
-void midvunit_state::set_input(const char *s)
+void midvunit_device::set_input(const char *s)
 {
 	m_galil_input = s;
 	m_galil_input_index = 0;
 	m_galil_input_length = strlen(s);
 }
 
-WRITE32_MEMBER(midvunit_state::midvunit_wheel_board_w)
+WRITE32_MEMBER(midvunit_device::midvunit_wheel_board_w)
 {
 	//logerror("midvunit_wheel_board_w: %08X\n", data);
 
 	// U8 PAL22V10 "DECODE0" TODO: Needs dump "A-19674"
 	if (BIT(data, 11) && !BIT(m_wheel_board_last, 11))
 	{
-		logerror("Wheel board (U8 PAL22V10; DECODE0) = %03X\n", BIT(data, 11) | ((data & 0xF) << 1) | ((data & 0x700) << 1));
+		//logerror("Wheel board (U8 PAL22V10; DECODE0) = %03X\n", BIT(data, 11) | ((data & 0xF) << 1) | ((data & 0x700) << 1));
 		m_wheel_board_u8_latch = 0;
 		m_wheel_board_u8_latch |= BIT(data, 0) << 6; // WA0; A for U9
 		m_wheel_board_u8_latch |= BIT(data, 1) << 5; // WA1; B for U9
@@ -386,7 +398,7 @@ WRITE32_MEMBER(midvunit_state::midvunit_wheel_board_w)
 
 	if (!BIT(data, 9))
 	{
-		logerror("Wheel board (U13 74HC245; DCS) = %02X\n", data & 0xFF);
+		//logerror("Wheel board (U13 74HC245; DCS) = %02X\n", data & 0xFF);
 	}
 	else if (!BIT(data, 10)) // G2A for U9
 	{
@@ -464,7 +476,7 @@ WRITE32_MEMBER(midvunit_state::midvunit_wheel_board_w)
 					logerror("Wheel board (ATODRDZ) = %02X\n", arg);
 					break;
 				case 4: // WHLCTLZ
-					output().set_value("wheel", arg);
+					//output().set_value("wheel", arg);
 					//logerror("Wheel board (U4 74HC574; Motor) = %02X\n", arg);
 					break;
 				case 5: // DRVCTLZ
@@ -486,7 +498,7 @@ WRITE32_MEMBER(midvunit_state::midvunit_wheel_board_w)
 }
 
 
-DECLARE_CUSTOM_INPUT_MEMBER(midvunit_state::motion_r)
+DECLARE_CUSTOM_INPUT_MEMBER(midvunit_device::motion_r)
 {
 	uint8_t status = m_motion->read();
 	for (uint8_t bit = 0; bit < 8; bit++)
@@ -498,13 +510,72 @@ DECLARE_CUSTOM_INPUT_MEMBER(midvunit_state::motion_r)
 }
 
 
+READ16_MEMBER(midvunit_device::midvunit_dipswitches_r)
+{
+	return (uint16_t(m_dsw->read()) & ~0x1f) | m_link_dips;
+}
+
+READ32_MEMBER(midvunit_device::midvunit_irq_r)
+{
+	uint32_t data = m_link_irq;
+	m_link_irq = 0;
+	logerror("midvunit_irq_r = %08X\n", data);
+	return data;
+}
+
+READ32_MEMBER(midvunit_device::midvunit_comm_r)
+{
+	if (offset != 0)
+	{
+		logerror("midvunit_comm_r(%d)\n", offset);
+		return 0;
+	}
+	else
+	{
+		m_link_device->m_maincpu->signal_interrupt_trigger();
+		uint16_t data = m_link_data;
+		if (m_link_input_last != data)
+			logerror("midvunit_comm_r = %03X\n", data);
+		m_link_input_last = data;
+		return data << 16;
+	}
+}
+
+WRITE32_MEMBER(midvunit_device::midvunit_comm_w)
+{
+	if (offset != 0)
+		logerror("midvunit_comm_w(%d) = %08X\n", offset, data);
+	else
+	{
+		uint16_t sdata = data >> 16;
+		uint16_t mask = ((sdata >> 4) & 0xF00) | 0xFF;
+		uint16_t masked = sdata & mask;
+		if (m_link_output_last != masked)
+			logerror("midvunit_comm_w = %03X\n", masked);
+		m_link_output_last = masked;
+		m_link_device->m_link_data = masked;
+		if (masked & 0xF00)
+			m_link_device->m_link_irq = 4;
+		m_maincpu->spin_until_interrupt();
+	}
+}
+
+void midvunit_device::set_link(uint8_t player_id, uint8_t player_count, midvunit_device *target)
+{
+	m_link_dips = (player_id & 0x3) | (((player_count - 1) & 0x3) << 3);
+	if (player_count <= 1)
+		m_link_dips |= 0x4;
+	m_link_device = target;
+}
+
+
 /*************************************
  *
  *  War Gods I/O ASICs
  *
  *************************************/
 
-READ32_MEMBER(midvunit_state::midvplus_misc_r)
+READ32_MEMBER(midvunit_device::midvplus_misc_r)
 {
 	uint32_t result = m_midvplus_misc[offset];
 
@@ -529,7 +600,7 @@ READ32_MEMBER(midvunit_state::midvplus_misc_r)
 }
 
 
-WRITE32_MEMBER(midvunit_state::midvplus_misc_w)
+WRITE32_MEMBER(midvunit_device::midvplus_misc_w)
 {
 	uint32_t olddata = m_midvplus_misc[offset];
 	bool logit = true;
@@ -564,7 +635,7 @@ WRITE32_MEMBER(midvunit_state::midvplus_misc_w)
  *
  *************************************/
 
-WRITE8_MEMBER(midvunit_state::midvplus_xf1_w)
+WRITE8_MEMBER(midvunit_device::midvplus_xf1_w)
 {
 //  osd_printf_debug("xf1_w = %d\n", data);
 
@@ -582,57 +653,57 @@ WRITE8_MEMBER(midvunit_state::midvplus_xf1_w)
  *
  *************************************/
 
-void midvunit_state::midvunit_map(address_map &map)
+void midvunit_device::midvunit_map(address_map &map)
 {
 	map(0x000000, 0x01ffff).ram().share("ram_base");
 	map(0x400000, 0x41ffff).ram();
-	map(0x600000, 0x600000).w(FUNC(midvunit_state::midvunit_dma_queue_w));
-	map(0x808000, 0x80807f).rw(FUNC(midvunit_state::tms32031_control_r), FUNC(midvunit_state::tms32031_control_w)).share("32031_control");
-	map(0x900000, 0x97ffff).rw(FUNC(midvunit_state::midvunit_videoram_r), FUNC(midvunit_state::midvunit_videoram_w)).share("videoram");
-	map(0x980000, 0x980000).r(FUNC(midvunit_state::midvunit_dma_queue_entries_r));
-	map(0x980020, 0x980020).r(FUNC(midvunit_state::midvunit_scanline_r));
-	map(0x980020, 0x98002b).w(FUNC(midvunit_state::midvunit_video_control_w));
-	map(0x980040, 0x980040).rw(FUNC(midvunit_state::midvunit_page_control_r), FUNC(midvunit_state::midvunit_page_control_w));
+	map(0x600000, 0x600000).w(FUNC(midvunit_device::midvunit_dma_queue_w));
+	map(0x808000, 0x80807f).rw(FUNC(midvunit_device::tms32031_control_r), FUNC(midvunit_device::tms32031_control_w)).share("32031_control");
+	map(0x900000, 0x97ffff).rw(FUNC(midvunit_device::midvunit_videoram_r), FUNC(midvunit_device::midvunit_videoram_w)).share("videoram");
+	map(0x980000, 0x980000).r(FUNC(midvunit_device::midvunit_dma_queue_entries_r));
+	map(0x980020, 0x980020).r(FUNC(midvunit_device::midvunit_scanline_r));
+	map(0x980020, 0x98002b).w(FUNC(midvunit_device::midvunit_video_control_w));
+	map(0x980040, 0x980040).rw(FUNC(midvunit_device::midvunit_page_control_r), FUNC(midvunit_device::midvunit_page_control_w));
 	map(0x980080, 0x980080).noprw();
-	map(0x980082, 0x980083).r(FUNC(midvunit_state::midvunit_dma_trigger_r));
-	map(0x990000, 0x990000).nopr(); // link PAL (low 4 bits must == 4)
+	map(0x980082, 0x980083).r(FUNC(midvunit_device::midvunit_dma_trigger_r));
+	map(0x990000, 0x990000).r(FUNC(midvunit_device::midvunit_irq_r));
 	map(0x991030, 0x991030).lr16("991030", [this]() { return uint16_t(m_in1->read()); });
 //  AM_RANGE(0x991050, 0x991050) AM_READONLY // seems to be another port
-	map(0x991060, 0x991060).r(FUNC(midvunit_state::port0_r));
-	map(0x992000, 0x992000).lr16("992000", [this]() { return uint16_t(m_dsw->read()); });
-	map(0x993000, 0x993000).rw(FUNC(midvunit_state::adc_r), FUNC(midvunit_state::adc_w));
-	map(0x994000, 0x994000).w(FUNC(midvunit_state::midvunit_control_w));
-	map(0x995000, 0x995000).rw(FUNC(midvunit_state::midvunit_wheel_board_r), FUNC(midvunit_state::midvunit_wheel_board_w));
-	map(0x995020, 0x995020).w(FUNC(midvunit_state::midvunit_cmos_protect_w));
-	map(0x997000, 0x997000).noprw(); // communications
-	map(0x9a0000, 0x9a0000).w(FUNC(midvunit_state::midvunit_sound_w));
-	map(0x9c0000, 0x9c1fff).rw(FUNC(midvunit_state::midvunit_cmos_r), FUNC(midvunit_state::midvunit_cmos_w)).share("nvram");
-	map(0x9e0000, 0x9e7fff).ram().w(FUNC(midvunit_state::midvunit_paletteram_w)).share("paletteram");
-	map(0xa00000, 0xbfffff).rw(FUNC(midvunit_state::midvunit_textureram_r), FUNC(midvunit_state::midvunit_textureram_w)).share("textureram");
+	map(0x991060, 0x991060).r(FUNC(midvunit_device::port0_r));
+	map(0x992000, 0x992000).r(FUNC(midvunit_device::midvunit_dipswitches_r));
+	map(0x993000, 0x993000).rw(FUNC(midvunit_device::adc_r), FUNC(midvunit_device::adc_w));
+	map(0x994000, 0x994000).w(FUNC(midvunit_device::midvunit_control_w));
+	map(0x995000, 0x995000).rw(FUNC(midvunit_device::midvunit_wheel_board_r), FUNC(midvunit_device::midvunit_wheel_board_w));
+	map(0x995020, 0x995020).w(FUNC(midvunit_device::midvunit_cmos_protect_w));
+	map(0x997000, 0x997020).rw(FUNC(midvunit_device::midvunit_comm_r), FUNC(midvunit_device::midvunit_comm_w));
+	map(0x9a0000, 0x9a0000).w(FUNC(midvunit_device::midvunit_sound_w));
+	map(0x9c0000, 0x9c1fff).rw(FUNC(midvunit_device::midvunit_cmos_r), FUNC(midvunit_device::midvunit_cmos_w)).share("nvram");
+	map(0x9e0000, 0x9e7fff).ram().w(FUNC(midvunit_device::midvunit_paletteram_w)).share("paletteram");
+	map(0xa00000, 0xbfffff).rw(FUNC(midvunit_device::midvunit_textureram_r), FUNC(midvunit_device::midvunit_textureram_w)).share("textureram");
 	map(0xc00000, 0xffffff).rom().region("user1", 0);
 }
 
 
-void midvunit_state::midvplus_map(address_map &map)
+void midvunit_device::midvplus_map(address_map &map)
 {
 	map(0x000000, 0x01ffff).ram().share("ram_base");
 	map(0x400000, 0x41ffff).ram().share("fastram_base");
-	map(0x600000, 0x600000).w(FUNC(midvunit_state::midvunit_dma_queue_w));
-	map(0x808000, 0x80807f).rw(FUNC(midvunit_state::tms32031_control_r), FUNC(midvunit_state::tms32031_control_w)).share("32031_control");
-	map(0x900000, 0x97ffff).rw(FUNC(midvunit_state::midvunit_videoram_r), FUNC(midvunit_state::midvunit_videoram_w)).share("videoram");
-	map(0x980000, 0x980000).r(FUNC(midvunit_state::midvunit_dma_queue_entries_r));
-	map(0x980020, 0x980020).r(FUNC(midvunit_state::midvunit_scanline_r));
-	map(0x980020, 0x98002b).w(FUNC(midvunit_state::midvunit_video_control_w));
-	map(0x980040, 0x980040).rw(FUNC(midvunit_state::midvunit_page_control_r), FUNC(midvunit_state::midvunit_page_control_w));
+	map(0x600000, 0x600000).w(FUNC(midvunit_device::midvunit_dma_queue_w));
+	map(0x808000, 0x80807f).rw(FUNC(midvunit_device::tms32031_control_r), FUNC(midvunit_device::tms32031_control_w)).share("32031_control");
+	map(0x900000, 0x97ffff).rw(FUNC(midvunit_device::midvunit_videoram_r), FUNC(midvunit_device::midvunit_videoram_w)).share("videoram");
+	map(0x980000, 0x980000).r(FUNC(midvunit_device::midvunit_dma_queue_entries_r));
+	map(0x980020, 0x980020).r(FUNC(midvunit_device::midvunit_scanline_r));
+	map(0x980020, 0x98002b).w(FUNC(midvunit_device::midvunit_video_control_w));
+	map(0x980040, 0x980040).rw(FUNC(midvunit_device::midvunit_page_control_r), FUNC(midvunit_device::midvunit_page_control_w));
 	map(0x980080, 0x980080).noprw();
-	map(0x980082, 0x980083).r(FUNC(midvunit_state::midvunit_dma_trigger_r));
+	map(0x980082, 0x980083).r(FUNC(midvunit_device::midvunit_dma_trigger_r));
 	map(0x990000, 0x99000f).rw(m_midway_ioasic, FUNC(midway_ioasic_device::read), FUNC(midway_ioasic_device::write));
-	map(0x994000, 0x994000).w(FUNC(midvunit_state::midvunit_control_w));
-	map(0x995020, 0x995020).w(FUNC(midvunit_state::midvunit_cmos_protect_w));
+	map(0x994000, 0x994000).w(FUNC(midvunit_device::midvunit_control_w));
+	map(0x995020, 0x995020).w(FUNC(midvunit_device::midvunit_cmos_protect_w));
 	map(0x9a0000, 0x9a0007).rw("ata", FUNC(ata_interface_device::cs0_r), FUNC(ata_interface_device::cs0_w)).umask32(0x0000ffff);
-	map(0x9c0000, 0x9c7fff).ram().w(FUNC(midvunit_state::midvunit_paletteram_w)).share("paletteram");
-	map(0x9d0000, 0x9d000f).rw(FUNC(midvunit_state::midvplus_misc_r), FUNC(midvunit_state::midvplus_misc_w)).share("midvplus_misc");
-	map(0xa00000, 0xbfffff).rw(FUNC(midvunit_state::midvunit_textureram_r), FUNC(midvunit_state::midvunit_textureram_w)).share("textureram");
+	map(0x9c0000, 0x9c7fff).ram().w(FUNC(midvunit_device::midvunit_paletteram_w)).share("paletteram");
+	map(0x9d0000, 0x9d000f).rw(FUNC(midvunit_device::midvplus_misc_r), FUNC(midvunit_device::midvplus_misc_w)).share("midvplus_misc");
+	map(0xa00000, 0xbfffff).rw(FUNC(midvunit_device::midvunit_textureram_r), FUNC(midvunit_device::midvunit_textureram_w)).share("textureram");
 	map(0xc00000, 0xcfffff).ram();
 }
 
@@ -644,161 +715,10 @@ void midvunit_state::midvplus_map(address_map &map)
  *
  *************************************/
 
-static INPUT_PORTS_START( midvunit )
-	PORT_START("IN0")
-	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_COIN1 )
-	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_COIN2 )
-	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_START1 )
-	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_TILT ) /* Slam Switch */
-	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_OTHER ) PORT_NAME("Enter") PORT_CODE(KEYCODE_F2) /* Test switch */
-	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_UNUSED )
-	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_SERVICE1 )
-	PORT_BIT( 0x0080, IP_ACTIVE_LOW, IPT_COIN3 )
-	PORT_BIT( 0x0100, IP_ACTIVE_LOW, IPT_VOLUME_DOWN )
-	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_VOLUME_UP )
-	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_BUTTON8 ) PORT_NAME("4th Gear")    /* 4th */
-	PORT_BIT( 0x0800, IP_ACTIVE_LOW, IPT_BUTTON7 ) PORT_NAME("3rd Gear")    /* 3rd */
-	PORT_BIT( 0x1000, IP_ACTIVE_LOW, IPT_BUTTON6 ) PORT_NAME("2nd Gear")    /* 2nd */
-	PORT_BIT( 0x2000, IP_ACTIVE_LOW, IPT_BUTTON5 ) PORT_NAME("1st Gear")    /* 1st */
-	PORT_BIT( 0x4000, IP_ACTIVE_LOW, IPT_COIN4 )
-	PORT_BIT( 0x8000, IP_ACTIVE_LOW, IPT_UNUSED )
-
-	PORT_START("IN1")
-	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_BUTTON1 ) PORT_NAME("Radio")   /* radio */
-	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_BUTTON2 ) PORT_NAME("View 1")  /* view 1 */
-	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_BUTTON3 ) PORT_NAME("View 2")  /* view 2 */
-	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_BUTTON4 ) PORT_NAME("View 3") /* view 3 */
-	PORT_BIT( 0xff80, IP_ACTIVE_LOW, IPT_UNUSED )
-
-	PORT_START("WHEEL")     /* wheel */
-	PORT_BIT( 0xff, 0x80, IPT_PADDLE ) PORT_MINMAX(0x10,0xf0) PORT_SENSITIVITY(25) PORT_KEYDELTA(20)
-
-	PORT_START("ACCEL")     /* gas pedal */
-	PORT_BIT( 0xff, 0x00, IPT_PEDAL ) PORT_SENSITIVITY(25) PORT_KEYDELTA(20)
-
-	PORT_START("BRAKE")     /* brake pedal */
-	PORT_BIT( 0xff, 0x00, IPT_PEDAL2 ) PORT_SENSITIVITY(25) PORT_KEYDELTA(20)
-INPUT_PORTS_END
-
-
-static INPUT_PORTS_START( crusnusa )
-	PORT_INCLUDE( midvunit )
-
-	PORT_START("MOTION")
-	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Mat Not Plugged In")
-	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Mat Stepped On")
-	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Opto Path Broken")
-	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Opto Detector Not Receiving")
-	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Opto LED Not Emitting")
-	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Fail Safe Switch Engaged")
-	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Fail Safe Switch Not Connected Correctly")
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Board Not Plugged In")
-
-	PORT_MODIFY("IN1")
-	PORT_BIT( 0x0080, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Stop")
-	PORT_BIT( 0x0100, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Device 1")
-	PORT_BIT( 0x0200, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Device 2")
-	PORT_BIT( 0x0400, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Device 3")
-	PORT_BIT( 0x0800, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Device 4")
-	PORT_BIT( 0xf000, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, midvunit_state, motion_r, nullptr )
-
+static INPUT_PORTS_START( midvunit_dips )
 	PORT_START("DSW")
 	/* DSW2 at U97 */
-	PORT_DIPNAME( 0x0001, 0x0000, "Link Status" )       PORT_DIPLOCATION("SW2:8")
-	PORT_DIPSETTING(      0x0000, "Master" )
-	PORT_DIPSETTING(      0x0001, "Slave" )
-	PORT_DIPNAME( 0x0002, 0x0002, "Link???" )       PORT_DIPLOCATION("SW2:7") /* Listed as Not Used in the manual */
-	PORT_DIPSETTING(      0x0002, DEF_STR( Off ) )
-	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
-	PORT_DIPNAME( 0x0004, 0x0004, "Linking" )       PORT_DIPLOCATION("SW2:6")
-	PORT_DIPSETTING(      0x0004, DEF_STR( Off ) )
-	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
-	PORT_DIPNAME( 0x0008, 0x0008, DEF_STR( Unknown ) )  PORT_DIPLOCATION("SW2:5") /* Listed as Not Used in the manual */
-	PORT_DIPSETTING(      0x0008, DEF_STR( Off ) )
-	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
-	PORT_DIPNAME( 0x0010, 0x0010, "Freeze" )        PORT_DIPLOCATION("SW2:4") /* Listed as Not Used in the manual */
-	PORT_DIPSETTING(      0x0010, DEF_STR( Off ) )
-	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
-	PORT_DIPNAME( 0x0020, 0x0020, DEF_STR( Cabinet ) )  PORT_DIPLOCATION("SW2:3")
-	PORT_DIPSETTING(      0x0020, DEF_STR( Upright ) )
-	PORT_DIPSETTING(      0x0000, "Sitdown" )
-	PORT_DIPNAME( 0x0040, 0x0040, "Enable Motion" )     PORT_DIPLOCATION("SW2:2")
-	PORT_DIPSETTING(      0x0040, DEF_STR( Off ) )
-	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
-	PORT_SERVICE_DIPLOC(  0x0080, IP_ACTIVE_LOW, "SW2:1" ) /* Listed as Not Used in the manual */
-
-	/* DSW3 at U19 */
-	PORT_DIPNAME( 0x0100, 0x0100, "Coin Counters" )     PORT_DIPLOCATION("SW3:8")
-	PORT_DIPSETTING(      0x0100, "1" )
-	PORT_DIPSETTING(      0x0000, "2" )
-	PORT_DIPNAME( 0xfe00, 0xf800, DEF_STR( Coinage ) )  PORT_DIPLOCATION("SW3:7,6,5,4,3,2,1")
-	PORT_DIPSETTING(      0xfe00, "USA-1" )
-	PORT_DIPSETTING(      0xfa00, "USA-3" )
-	PORT_DIPSETTING(      0xfc00, "USA-7" )
-	PORT_DIPSETTING(      0xf800, "USA-8" )
-	PORT_DIPSETTING(      0xf600, "Norway-1" )
-	PORT_DIPSETTING(      0xee00, "Australia-1" )
-	PORT_DIPSETTING(      0xea00, "Australia-2" )
-	PORT_DIPSETTING(      0xec00, "Australia-3" )
-	PORT_DIPSETTING(      0xe800, "Australia-4" )
-	PORT_DIPSETTING(      0xde00, "Swiss-1" )
-	PORT_DIPSETTING(      0xda00, "Swiss-2" )
-	PORT_DIPSETTING(      0xdc00, "Swiss-3" )
-	PORT_DIPSETTING(      0xce00, "Belgium-1" )
-	PORT_DIPSETTING(      0xca00, "Belgium-2" )
-	PORT_DIPSETTING(      0xcc00, "Belgium-3" )
-	PORT_DIPSETTING(      0xbe00, "French-1" )
-	PORT_DIPSETTING(      0xba00, "French-2" )
-	PORT_DIPSETTING(      0xbc00, "French-3" )
-	PORT_DIPSETTING(      0xb800, "French-4" )
-	PORT_DIPSETTING(      0xb600, "Hungary-1" )
-	PORT_DIPSETTING(      0xae00, "Taiwan-1" )
-	PORT_DIPSETTING(      0xaa00, "Taiwan-2" )
-	PORT_DIPSETTING(      0xac00, "Taiwan-3" )
-	PORT_DIPSETTING(      0x9e00, "UK-1" )
-	PORT_DIPSETTING(      0x9a00, "UK-2" )
-	PORT_DIPSETTING(      0x9c00, "UK-3" )
-	PORT_DIPSETTING(      0x8e00, "Finland-1" )
-	PORT_DIPSETTING(      0x7e00, "German-1" )
-	PORT_DIPSETTING(      0x7a00, "German-2" )
-	PORT_DIPSETTING(      0x7c00, "German-3" )
-	PORT_DIPSETTING(      0x7800, "German-4" )
-	PORT_DIPSETTING(      0x7600, "Denmark-1" )
-	PORT_DIPSETTING(      0x6e00, "Japan-1" )
-	PORT_DIPSETTING(      0x6a00, "Japan-2" )
-	PORT_DIPSETTING(      0x6c00, "Japan-3" )
-	PORT_DIPSETTING(      0x5e00, "Italy-1" )
-	PORT_DIPSETTING(      0x5a00, "Italy-2" )
-	PORT_DIPSETTING(      0x5c00, "Italy-3" )
-	PORT_DIPSETTING(      0x4e00, "Sweden-1" )
-	PORT_DIPSETTING(      0x3e00, "Canada-1" )
-	PORT_DIPSETTING(      0x3a00, "Canada-2" )
-	PORT_DIPSETTING(      0x3c00, "Canada-3" )
-	PORT_DIPSETTING(      0x3600, "General-1" )
-	PORT_DIPSETTING(      0x3200, "General-3" )
-	PORT_DIPSETTING(      0x3400, "General-5" )
-	PORT_DIPSETTING(      0x3000, "General-7" )
-	PORT_DIPSETTING(      0x2e00, "Austria-1" )
-	PORT_DIPSETTING(      0x2a00, "Austria-2" )
-	PORT_DIPSETTING(      0x2c00, "Austria-3" )
-	PORT_DIPSETTING(      0x2800, "Austria-4" )
-	PORT_DIPSETTING(      0x1e00, "Spain-1" )
-	PORT_DIPSETTING(      0x1a00, "Spain-2" )
-	PORT_DIPSETTING(      0x1c00, "Spain-3" )
-	PORT_DIPSETTING(      0x1800, "Spain-4" )
-	PORT_DIPSETTING(      0x0e00, "Netherland-1" )
-INPUT_PORTS_END
-
-
-static INPUT_PORTS_START( crusnwld )
-	PORT_INCLUDE( midvunit )
-
-	PORT_START("DSW")
-	/* DSW2 at U97 */
-	PORT_DIPNAME( 0x0003, 0x0000, "Link Number" )       PORT_DIPLOCATION("SW2:8,7")
+	/*PORT_DIPNAME( 0x0003, 0x0000, "Link Number" )       PORT_DIPLOCATION("SW2:8,7")
 	PORT_DIPSETTING(      0x0000, "1" )
 	PORT_DIPSETTING(      0x0001, "2" )
 	PORT_DIPSETTING(      0x0002, "3" )
@@ -807,13 +727,16 @@ static INPUT_PORTS_START( crusnwld )
 	PORT_DIPSETTING(      0x0004, DEF_STR( Off ) )
 	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
 	PORT_DIPNAME( 0x0018, 0x0008, "Games Linked" )      PORT_DIPLOCATION("SW2:5,4")
+	PORT_DIPSETTING(      0x0000, "1" )
 	PORT_DIPSETTING(      0x0008, "2" )
 	PORT_DIPSETTING(      0x0010, "3" )
-	PORT_DIPSETTING(      0x0018, "4" )
+	PORT_DIPSETTING(      0x0018, "4" )*/
 	PORT_DIPNAME( 0x0020, 0x0020, DEF_STR( Cabinet ) )  PORT_DIPLOCATION("SW2:3")
 	PORT_DIPSETTING(      0x0020, DEF_STR( Upright ) )
 	PORT_DIPSETTING(      0x0000, "Sitdown" )
-	PORT_DIPUNUSED_DIPLOC( 0x0040, 0x0040, "SW2:2" )        /* Manual shows Not Used */
+	PORT_DIPNAME( 0x0040, 0x0040, "Enable Motion" )     PORT_DIPLOCATION("SW2:2")
+	PORT_DIPSETTING(      0x0040, DEF_STR( Off ) )
+	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
 	PORT_SERVICE_DIPLOC(  0x0080, IP_ACTIVE_LOW, "SW2:1" )
 
 	/* DSW3 at U19 */
@@ -878,171 +801,77 @@ static INPUT_PORTS_START( crusnwld )
 	PORT_DIPSETTING(      0x0e00, "Netherland-1" )
 INPUT_PORTS_END
 
-
-static INPUT_PORTS_START( offroadc )
-	PORT_INCLUDE( midvunit )
-
-	PORT_START("DSW")
-	/* DSW2 at U97 */
-	PORT_DIPUNUSED_DIPLOC( 0x0001, 0x0001, "SW2:8" )        /* Manual shows Not Used & "No Effect" for both On & Off */
-	PORT_DIPNAME( 0x0002, 0x0000, "Gear Shifter Switch" )       PORT_DIPLOCATION("SW2:7")
-	PORT_DIPSETTING(      0x0002, "Normally Closed" )
-	PORT_DIPSETTING(      0x0000, "Normally Open" )
-	PORT_DIPNAME( 0x0004, 0x0004, "Added Attractions" )     PORT_DIPLOCATION("SW2:6")
-	PORT_DIPSETTING(      0x0004, "Girls Present" )
-	PORT_DIPSETTING(      0x0000, "Girls Missing" )
-	PORT_DIPNAME( 0x0008, 0x0008, "Graphic Effects" )       PORT_DIPLOCATION("SW2:5")
-	PORT_DIPSETTING(      0x0008, "Roadkill Present" )
-	PORT_DIPSETTING(      0x0000, "Roadkill Missing" )
-	PORT_DIPUNUSED_DIPLOC( 0x0010, 0x0010, "SW2:4" )        /* Manual shows Not Used & "No Effect" for both On & Off */
-	PORT_DIPNAME( 0x0020, 0x0020, "Link" )              PORT_DIPLOCATION("SW2:3")
-	PORT_DIPSETTING(      0x0020, "Disabled" )
-	PORT_DIPSETTING(      0x0000, "Enabled" )
-	PORT_DIPNAME( 0x00c0, 0x00c0, "Link Machine" )          PORT_DIPLOCATION("SW2:2,1")
-	PORT_DIPSETTING(      0x00c0, "1" )
-	PORT_DIPSETTING(      0x0080, "2" )
-	PORT_DIPSETTING(      0x0040, "3" )
-	PORT_DIPSETTING(      0x0000, "4" )
-
-	/* DSW3 at U19 */
-	PORT_DIPUNUSED_DIPLOC( 0x0100, 0x0100, "SW3:8" )    /* Manual states "Switches 6, 7 and 8 are not active. We recommend */
-	PORT_DIPUNUSED_DIPLOC( 0x0200, 0x0200, "SW3:7" )    /* they be set to the facorty default (OFF) positions."            */
-	PORT_DIPUNUSED_DIPLOC( 0x0400, 0x0400, "SW3:6" )
-	PORT_DIPNAME( 0xf800, 0xf800, DEF_STR( Coinage ) )      PORT_DIPLOCATION("SW3:5,4,3,2,1")
-	PORT_DIPSETTING(      0xf800, "USA 1" )
-	PORT_DIPSETTING(      0xf000, "German 1" )
-	PORT_DIPSETTING(      0xe800, "French 1" )
-	PORT_DIPSETTING(      0xe000, "Canada 1" )
-	PORT_DIPSETTING(      0xd800, "Swiss 1" )
-	PORT_DIPSETTING(      0xd000, "Italy 1" )
-	PORT_DIPSETTING(      0xc800, "UK 1" )
-	PORT_DIPSETTING(      0xc000, "Spain 1" )
-	PORT_DIPSETTING(      0xb800, "Australia 1" )
-	PORT_DIPSETTING(      0xb000, "Japan 1" )
-	PORT_DIPSETTING(      0xa800, "Taiwan 1" )
-	PORT_DIPSETTING(      0xa000, "Austria 1" )
-	PORT_DIPSETTING(      0x9800, "Belgium 1" )
-	PORT_DIPSETTING(      0x9000, "Sweden 1" )
-	PORT_DIPSETTING(      0x8800, "Finland 1" )
-	PORT_DIPSETTING(      0x8000, "Netherlands 1" )
-	PORT_DIPSETTING(      0x7800, "Norway 1" )
-	PORT_DIPSETTING(      0x7000, "Denmark 1" )
-	PORT_DIPSETTING(      0x6800, "Hungary 1" )
-INPUT_PORTS_END
-
-
-static INPUT_PORTS_START( wargods )
-	PORT_START("DIPS")
-	PORT_DIPNAME( 0x0001, 0x0001, "CRT Type / Resolution" )     PORT_DIPLOCATION("SW1:1") /* This only works for the Dual Res version */
-	PORT_DIPSETTING(      0x0001, "Medium Res (24Khz)" )
-	PORT_DIPSETTING(      0x0000, "Standard Res (15Khz)" )
-	PORT_DIPNAME( 0x0002, 0x0002, DEF_STR( Unknown ) )      PORT_DIPLOCATION("SW1:2") /* Manual shows Not Used (must be Off) */
-	PORT_DIPSETTING(      0x0002, DEF_STR( Off ) )
-	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
-	PORT_DIPNAME( 0x0004, 0x0004, DEF_STR( Unknown ) )      PORT_DIPLOCATION("SW1:3") /* Manual shows Not Used (must be Off) */
-	PORT_DIPSETTING(      0x0004, DEF_STR( Off ) )
-	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
-	PORT_DIPNAME( 0x0008, 0x0008, "Blood" )             PORT_DIPLOCATION("SW1:4")
-	PORT_DIPSETTING(      0x0000, DEF_STR( Off ) )
-	PORT_DIPSETTING(      0x0008, DEF_STR( On ) )
-	PORT_DIPNAME( 0x0010, 0x0010, "Graphics" )          PORT_DIPLOCATION("SW1:5")
-	PORT_DIPSETTING(      0x0010, DEF_STR( Normal ) )
-	PORT_DIPSETTING(      0x0000, "Family" )
-	PORT_DIPNAME( 0x0020, 0x0020, DEF_STR( Unknown ) )      PORT_DIPLOCATION("SW1:6") /* Manual shows Not Used */
-	PORT_DIPSETTING(      0x0020, DEF_STR( Off ) )
-	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
-	PORT_DIPNAME( 0x0040, 0x0040, DEF_STR( Unknown ) )      PORT_DIPLOCATION("SW1:7") /* Manual shows Not Used */
-	PORT_DIPSETTING(      0x0040, DEF_STR( Off ) )
-	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
-	PORT_DIPNAME( 0x0080, 0x0080, DEF_STR( Unknown ) )      PORT_DIPLOCATION("SW1:8") /* Manual shows Not Used */
-	PORT_DIPSETTING(      0x0080, DEF_STR( Off ) )
-	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
-	PORT_DIPNAME( 0x0100, 0x0100, "Coinage Source" )        PORT_DIPLOCATION("SW2:1")
-	PORT_DIPSETTING(      0x0100, "Dipswitch" )
-	PORT_DIPSETTING(      0x0000, "CMOS" )
-	PORT_DIPNAME( 0x3e00, 0x3e00, DEF_STR( Coinage ) )      PORT_DIPLOCATION("SW2:2,3,4,5,6")
-	PORT_DIPSETTING(      0x3e00, "USA-1" )
-	PORT_DIPSETTING(      0x3c00, "USA-2" )
-	PORT_DIPSETTING(      0x3a00, "USA-3" )
-	PORT_DIPSETTING(      0x3800, "USA-4" )
-	PORT_DIPSETTING(      0x3400, "USA-9" )
-	PORT_DIPSETTING(      0x3200, "USA-10" )
-	PORT_DIPSETTING(      0x3600, "USA-ECA" )
-	PORT_DIPSETTING(      0x2e00, "German-1" )
-	PORT_DIPSETTING(      0x2c00, "German-2" )
-	PORT_DIPSETTING(      0x2a00, "German-3" )
-	PORT_DIPSETTING(      0x2800, "German-4" )
-	PORT_DIPSETTING(      0x2400, "German-5" )
-	PORT_DIPSETTING(      0x2600, "German-ECA" )
-	PORT_DIPSETTING(      0x1e00, "French-1" )
-	PORT_DIPSETTING(      0x1c00, "French-2" )
-	PORT_DIPSETTING(      0x1a00, "French-3" )
-	PORT_DIPSETTING(      0x1800, "French-4" )
-	PORT_DIPSETTING(      0x1400, "French-11" )
-	PORT_DIPSETTING(      0x1200, "French-12" )
-	PORT_DIPSETTING(      0x1600, "French-ECA" )
-	PORT_DIPSETTING(      0x3000, DEF_STR( Free_Play ) )
-	PORT_DIPNAME( 0x4000, 0x4000, DEF_STR( Unknown ) )      PORT_DIPLOCATION("SW2:7") /* Manual shows Not Used */
-	PORT_DIPSETTING(      0x4000, DEF_STR( Off ) )
-	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
-	PORT_DIPNAME( 0x8000, 0x8000, "Test Switch" )           PORT_DIPLOCATION("SW2:8")
-	PORT_DIPSETTING(      0x8000, DEF_STR( Off ) )
-	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
-
-	PORT_START("SYSTEM")
+static INPUT_PORTS_START( midvunit_device )
+	PORT_START("IN0")
 	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_COIN2 )
 	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_START1 )
-	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_TILT )     /* Slam Switch */
-	PORT_SERVICE_NO_TOGGLE( 0x0010, IP_ACTIVE_LOW )
-	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_START2 )
+	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_TILT ) /* Slam Switch */
+	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_OTHER ) PORT_NAME("Enter") PORT_CODE(KEYCODE_F2) /* Test switch */
+	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_BIT( 0x0080, IP_ACTIVE_LOW, IPT_COIN3 )
-	PORT_BIT( 0x0100, IP_ACTIVE_LOW, IPT_COIN4 )
-	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_START3 )
-	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_START4 )
-	PORT_BIT( 0x0800, IP_ACTIVE_LOW, IPT_VOLUME_DOWN )
-	PORT_BIT( 0x1000, IP_ACTIVE_LOW, IPT_VOLUME_UP )
-	PORT_BIT( 0x6000, IP_ACTIVE_LOW, IPT_UNUSED )
-	PORT_BIT( 0x8000, IP_ACTIVE_LOW, IPT_BILL1 )    /* Bill */
-
-	PORT_START("IN1")
-	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_JOYSTICK_UP ) PORT_8WAY PORT_PLAYER(1)
-	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN ) PORT_8WAY PORT_PLAYER(1)
-	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT ) PORT_8WAY PORT_PLAYER(1)
-	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT ) PORT_8WAY PORT_PLAYER(1)
-	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_BUTTON2 ) PORT_PLAYER(1)
-	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_BUTTON3 ) PORT_PLAYER(1)
-	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_BUTTON1 ) PORT_PLAYER(1)
-	PORT_BIT( 0x0080, IP_ACTIVE_LOW, IPT_UNUSED )
-	PORT_BIT( 0x0100, IP_ACTIVE_LOW, IPT_JOYSTICK_UP ) PORT_8WAY PORT_PLAYER(2)
-	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN ) PORT_8WAY PORT_PLAYER(2)
-	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT ) PORT_8WAY PORT_PLAYER(2)
-	PORT_BIT( 0x0800, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT ) PORT_8WAY PORT_PLAYER(2)
-	PORT_BIT( 0x1000, IP_ACTIVE_LOW, IPT_BUTTON2 ) PORT_PLAYER(2)
-	PORT_BIT( 0x2000, IP_ACTIVE_LOW, IPT_BUTTON3 ) PORT_PLAYER(2)
-	PORT_BIT( 0x4000, IP_ACTIVE_LOW, IPT_BUTTON1 ) PORT_PLAYER(2)
+	PORT_BIT( 0x0100, IP_ACTIVE_LOW, IPT_VOLUME_DOWN )
+	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_VOLUME_UP )
+	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_BUTTON8 ) PORT_NAME("4th Gear")    /* 4th */
+	PORT_BIT( 0x0800, IP_ACTIVE_LOW, IPT_BUTTON7 ) PORT_NAME("3rd Gear")    /* 3rd */
+	PORT_BIT( 0x1000, IP_ACTIVE_LOW, IPT_BUTTON6 ) PORT_NAME("2nd Gear")    /* 2nd */
+	PORT_BIT( 0x2000, IP_ACTIVE_LOW, IPT_BUTTON5 ) PORT_NAME("1st Gear")    /* 1st */
+	PORT_BIT( 0x4000, IP_ACTIVE_LOW, IPT_COIN4 )
 	PORT_BIT( 0x8000, IP_ACTIVE_LOW, IPT_UNUSED )
 
-	PORT_START("IN2")
-	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_BUTTON5 ) PORT_PLAYER(1)
-	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_BUTTON4 ) PORT_PLAYER(1)
-	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_BUTTON6 ) PORT_PLAYER(1)
-	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_UNUSED )
-	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_BUTTON5 ) PORT_PLAYER(2)
-	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_BUTTON4 ) PORT_PLAYER(2)
-	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_BUTTON6 ) PORT_PLAYER(2)
+	PORT_START("IN1")
+	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_BUTTON1 ) PORT_NAME("Radio")   /* radio */
+	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_BUTTON2 ) PORT_NAME("View 1")  /* view 1 */
+	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_BUTTON3 ) PORT_NAME("View 2")  /* view 2 */
+	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_BUTTON4 ) PORT_NAME("View 3") /* view 3 */
 	PORT_BIT( 0xff80, IP_ACTIVE_LOW, IPT_UNUSED )
+
+	PORT_START("WHEEL")     /* wheel */
+	PORT_BIT( 0xff, 0x80, IPT_PADDLE ) PORT_MINMAX(0x10,0xf0) PORT_SENSITIVITY(25) PORT_KEYDELTA(20)
+
+	PORT_START("ACCEL")     /* gas pedal */
+	PORT_BIT( 0xff, 0x00, IPT_PEDAL ) PORT_SENSITIVITY(25) PORT_KEYDELTA(20)
+
+	PORT_START("BRAKE")     /* brake pedal */
+	PORT_BIT( 0xff, 0x00, IPT_PEDAL2 ) PORT_SENSITIVITY(25) PORT_KEYDELTA(20)
 INPUT_PORTS_END
 
-static INPUT_PORTS_START( wargodsa ) /* For Medium Res only versions */
-	PORT_INCLUDE(wargods)
+ioport_constructor crusnwld_device::device_input_ports() const
+{
+	return INPUT_PORTS_NAME( midvunit_device );
+}
 
-	PORT_MODIFY("DIPS")
-	PORT_DIPNAME( 0x0001, 0x0001, DEF_STR( Unknown ) )      PORT_DIPLOCATION("SW1:1") /* Manual shows Not Used (must be Off) */
-	PORT_DIPSETTING(      0x0001, DEF_STR( Off ) )
-	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
+
+static INPUT_PORTS_START( crusnusa )
+	PORT_INCLUDE( midvunit_device )
+
+	PORT_START("MOTION")
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Mat Not Plugged In")
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Mat Stepped On")
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Opto Path Broken")
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Opto Detector Not Receiving")
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Opto LED Not Emitting")
+	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Fail Safe Switch Engaged")
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Fail Safe Switch Not Connected Correctly")
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Board Not Plugged In")
+
+	PORT_MODIFY("IN1")
+	PORT_BIT( 0x0080, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Stop")
+	PORT_BIT( 0x0100, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Device 1")
+	PORT_BIT( 0x0200, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Device 2")
+	PORT_BIT( 0x0400, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Device 3")
+	PORT_BIT( 0x0800, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_NAME("Motion Status - Device 4")
+	PORT_BIT( 0xf000, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, midvunit_device, motion_r, nullptr )
 INPUT_PORTS_END
+
+ioport_constructor crusnusa_device::device_input_ports() const
+{
+	return INPUT_PORTS_NAME( crusnusa );
+}
 
 
 /*************************************
@@ -1051,11 +880,11 @@ INPUT_PORTS_END
  *
  *************************************/
 
-void midvunit_state::midvcommon(machine_config &config)
+void midvunit_device::midvcommon(machine_config &config)
 {
 	/* basic machine hardware */
 	TMS32031(config, m_maincpu, CPU_CLOCK);
-	m_maincpu->set_addrmap(AS_PROGRAM, &midvunit_state::midvunit_map);
+	m_maincpu->set_addrmap(AS_PROGRAM, &midvunit_device::midvunit_map);
 
 	NVRAM(config, "nvram", nvram_device::DEFAULT_ALL_1);
 
@@ -1069,12 +898,12 @@ void midvunit_state::midvcommon(machine_config &config)
 
 	SCREEN(config, m_screen, SCREEN_TYPE_RASTER);
 	m_screen->set_raw(MIDVUNIT_VIDEO_CLOCK/2, 666, 0, 512, 432, 0, 400);
-	m_screen->set_screen_update(FUNC(midvunit_state::screen_update_midvunit));
+	m_screen->set_screen_update(FUNC(midvunit_device::screen_update_midvunit));
 	m_screen->set_palette(m_palette);
 }
 
 
-void midvunit_state::midvunit(machine_config &config)
+void crusnusa_device::device_add_mconfig(machine_config &config)
 {
 	midvcommon(config);
 
@@ -1083,51 +912,111 @@ void midvunit_state::midvunit(machine_config &config)
 	m_adc->ch1_callback().set_ioport("WHEEL");
 	m_adc->ch2_callback().set_ioport("ACCEL");
 	m_adc->ch3_callback().set_ioport("BRAKE");
-
-	/* sound hardware */
-	DCS_AUDIO_2K(config, "dcs", 0);
 }
 
-
-void midvunit_state::crusnwld(machine_config &config)
+void crusnwld_device::device_add_mconfig(machine_config &config)
 {
-	midvunit(config);
+	midvcommon(config);
+	
+	ADC0844(config, m_adc);
+	m_adc->intr_callback().set_inputline("maincpu", 3);
+	m_adc->ch1_callback().set_ioport("WHEEL");
+	m_adc->ch2_callback().set_ioport("ACCEL");
+	m_adc->ch3_callback().set_ioport("BRAKE");
+	
 	/* valid values are 450 or 460 */
 	MIDWAY_SERIAL_PIC(config, m_midway_serial_pic, 0);
 	m_midway_serial_pic->set_upper(450);
 }
 
-void midvunit_state::offroadc(machine_config &config)
+void midvunit_state::common(machine_config &config)
 {
-	midvunit(config);
-	/* valid values are 230 or 234 */
-	MIDWAY_SERIAL_PIC2(config, m_midway_serial_pic2, 0);
-	m_midway_serial_pic2->set_upper(230);
-	m_midway_serial_pic2->set_yearoffs(94);
+	uint8_t players = player_count();
+	for (uint8_t i = 0; i < players; ++i)
+		m_player[i]->set_link(i, players, m_player[(i + 1) % players]);
+	
+	/* sound hardware */
+	DCS_AUDIO_2K(config, "dcs", 0);
 }
 
-void midvunit_state::midvplus(machine_config &config)
+void midvunit_state::crusnusa41(machine_config &config)
 {
-	midvcommon(config);
+	uint8_t players = player_count();
+	for (uint8_t i = 0; i < players; ++i)
+		MIDVUNIT_CRUSNUSA41(config, m_player[i], 0);
+	common(config);
+}
 
-	/* basic machine hardware */
-	m_maincpu->set_addrmap(AS_PROGRAM, &midvunit_state::midvplus_map);
-	m_maincpu->xf1().set(FUNC(midvunit_state::midvplus_xf1_w));
+void midvunit_state::crusnusa40(machine_config &config)
+{
+	uint8_t players = player_count();
+	for (uint8_t i = 0; i < players; ++i)
+		MIDVUNIT_CRUSNUSA40(config, m_player[i], 0);
+	common(config);
+}
 
-	MCFG_MACHINE_RESET_OVERRIDE(midvunit_state,midvplus)
-	config.device_remove("nvram");
+void midvunit_state::crusnusa21(machine_config &config)
+{
+	uint8_t players = player_count();
+	for (uint8_t i = 0; i < players; ++i)
+		MIDVUNIT_CRUSNUSA21(config, m_player[i], 0);
+	common(config);
+}
 
-	ATA_INTERFACE(config, m_ata).options(ata_devices, "hdd", nullptr, true);
+void midvunit_state::crusnwld25(machine_config &config)
+{
+	uint8_t players = player_count();
+	for (uint8_t i = 0; i < players; ++i)
+		MIDVUNIT_CRUSNWRD25(config, m_player[i], 0);
+	common(config);
+}
 
-	MIDWAY_IOASIC(config, m_midway_ioasic, 0);
-	m_midway_ioasic->set_shuffle(0);
-	m_midway_ioasic->set_upper(452); /* no alternates */
-	m_midway_ioasic->set_yearoffs(94);
+void midvunit_state::crusnwld24(machine_config &config)
+{
+	uint8_t players = player_count();
+	for (uint8_t i = 0; i < players; ++i)
+		MIDVUNIT_CRUSNWRD24(config, m_player[i], 0);
+	common(config);
+}
 
-	/* sound hardware */
-	DCS2_AUDIO_2115(config, m_dcs, 0);
-	m_dcs->set_dram_in_mb(2);
-	m_dcs->set_polling_offset(0x3839);
+void midvunit_state::crusnwld23(machine_config &config)
+{
+	uint8_t players = player_count();
+	for (uint8_t i = 0; i < players; ++i)
+		MIDVUNIT_CRUSNWRD23(config, m_player[i], 0);
+	common(config);
+}
+
+void midvunit_state::crusnwld20(machine_config &config)
+{
+	uint8_t players = player_count();
+	for (uint8_t i = 0; i < players; ++i)
+		MIDVUNIT_CRUSNWRD20(config, m_player[i], 0);
+	common(config);
+}
+
+void midvunit_state::crusnwld19(machine_config &config)
+{
+	uint8_t players = player_count();
+	for (uint8_t i = 0; i < players; ++i)
+		MIDVUNIT_CRUSNWRD19(config, m_player[i], 0);
+	common(config);
+}
+
+void midvunit_state::crusnwld17(machine_config &config)
+{
+	uint8_t players = player_count();
+	for (uint8_t i = 0; i < players; ++i)
+		MIDVUNIT_CRUSNWRD17(config, m_player[i], 0);
+	common(config);
+}
+
+void midvunit_state::crusnwld13(machine_config &config)
+{
+	uint8_t players = player_count();
+	for (uint8_t i = 0; i < players; ++i)
+		MIDVUNIT_CRUSNWRD13(config, m_player[i], 0);
+	common(config);
 }
 
 
@@ -1254,6 +1143,11 @@ ROM_START( crusnusa ) /* Version 4.1, Mon Feb 13 1995 - 16:53:40 */
 	ROM_LOAD("a-19672.u114.bin", 0x0000, 0x0001, NO_DUMP ) /* TIBPAL22V10-15BCNT */
 ROM_END
 
+const tiny_rom_entry *crusnusa41_device::device_rom_region() const
+{
+	return ROM_NAME( crusnusa );
+}
+
 
 ROM_START( crusnusa40 ) /* Version 4.0, Wed Feb 08 1995 - 10:45:14 */
 	ROM_REGION16_LE( 0x1000000, "dcs", ROMREGION_ERASEFF )  /* sound data */
@@ -1288,6 +1182,11 @@ ROM_START( crusnusa40 ) /* Version 4.0, Wed Feb 08 1995 - 10:45:14 */
 	ROM_LOAD32_BYTE( "cusa.u28",     0x800002, 0x80000, CRC(cffa5fb1) SHA1(fb73bc8f65b604c374f88d0ecf06c50ef52f0547) )
 	ROM_LOAD32_BYTE( "cusa.u29",     0x800003, 0x80000, CRC(cbe52c60) SHA1(3f309ce8ef1784c830f4160cfe76dc3a0b438cac) )
 ROM_END
+
+const tiny_rom_entry *crusnusa40_device::device_rom_region() const
+{
+	return ROM_NAME( crusnusa40 );
+}
 
 
 ROM_START( crusnusa21 ) /* Version 2.1, Wed Nov 09 1994 - 16:28:10 */
@@ -1324,6 +1223,11 @@ ROM_START( crusnusa21 ) /* Version 2.1, Wed Nov 09 1994 - 16:28:10 */
 	ROM_LOAD32_BYTE( "cusa.u29",     0x800003, 0x80000, CRC(cbe52c60) SHA1(3f309ce8ef1784c830f4160cfe76dc3a0b438cac) )
 ROM_END
 
+const tiny_rom_entry *crusnusa21_device::device_rom_region() const
+{
+	return ROM_NAME( crusnusa21 );
+}
+
 
 ROM_START( crusnwld ) /* Version 2.5, Wed Nov 04 1998 - 15:50:52 */
 	ROM_REGION16_LE( 0x1000000, "dcs", ROMREGION_ERASEFF )  /* sound data */
@@ -1354,6 +1258,11 @@ ROM_START( crusnwld ) /* Version 2.5, Wed Nov 04 1998 - 15:50:52 */
 	ROM_LOAD32_BYTE( "cwld.u24",     0x0c00002, 0x100000, CRC(83485401) SHA1(58407818a82a7a3657530dcda7e373e678b58ab2) )
 	ROM_LOAD32_BYTE( "cwld.u25",     0x0c00003, 0x100000, CRC(0dad97a9) SHA1(cdb0c02da35243b118e37ff1519aa6ee1a79d06d) )
 ROM_END
+
+const tiny_rom_entry *crusnwld25_device::device_rom_region() const
+{
+	return ROM_NAME( crusnwld );
+}
 
 
 ROM_START( crusnwld24 ) /* Version 2.4, Thu Feb 19 1998 - 13:43:26 */
@@ -1386,6 +1295,11 @@ ROM_START( crusnwld24 ) /* Version 2.4, Thu Feb 19 1998 - 13:43:26 */
 	ROM_LOAD32_BYTE( "cwld.u25",     0x0c00003, 0x100000, CRC(0dad97a9) SHA1(cdb0c02da35243b118e37ff1519aa6ee1a79d06d) )
 ROM_END
 
+const tiny_rom_entry *crusnwld24_device::device_rom_region() const
+{
+	return ROM_NAME( crusnwld24 );
+}
+
 
 ROM_START( crusnwld23 ) /* Version 2.3, Fri Jan 09 1998 - 10:25:49 */
 	ROM_REGION16_LE( 0x1000000, "dcs", ROMREGION_ERASEFF )  /* sound data */
@@ -1416,6 +1330,11 @@ ROM_START( crusnwld23 ) /* Version 2.3, Fri Jan 09 1998 - 10:25:49 */
 	ROM_LOAD32_BYTE( "cwld.u24",     0x0c00002, 0x100000, CRC(83485401) SHA1(58407818a82a7a3657530dcda7e373e678b58ab2) )
 	ROM_LOAD32_BYTE( "cwld.u25",     0x0c00003, 0x100000, CRC(0dad97a9) SHA1(cdb0c02da35243b118e37ff1519aa6ee1a79d06d) )
 ROM_END
+
+const tiny_rom_entry *crusnwld23_device::device_rom_region() const
+{
+	return ROM_NAME( crusnwld23 );
+}
 
 
 ROM_START( crusnwld20 ) /* Version 2.0, Tue Mar 18 1997 - 12:32:57 */
@@ -1448,6 +1367,11 @@ ROM_START( crusnwld20 ) /* Version 2.0, Tue Mar 18 1997 - 12:32:57 */
 	ROM_LOAD32_BYTE( "cwld.u25",     0x0c00003, 0x100000, CRC(0dad97a9) SHA1(cdb0c02da35243b118e37ff1519aa6ee1a79d06d) )
 ROM_END
 
+const tiny_rom_entry *crusnwld20_device::device_rom_region() const
+{
+	return ROM_NAME( crusnwld20 );
+}
+
 
 ROM_START( crusnwld19 ) /* Version 1.9, Sat Mar 08 1997 - 14:48:17 */
 	ROM_REGION16_LE( 0x1000000, "dcs", ROMREGION_ERASEFF )  /* sound data */
@@ -1478,6 +1402,11 @@ ROM_START( crusnwld19 ) /* Version 1.9, Sat Mar 08 1997 - 14:48:17 */
 	ROM_LOAD32_BYTE( "cwld.u24",     0x0c00002, 0x100000, CRC(83485401) SHA1(58407818a82a7a3657530dcda7e373e678b58ab2) )
 	ROM_LOAD32_BYTE( "cwld.u25",     0x0c00003, 0x100000, CRC(0dad97a9) SHA1(cdb0c02da35243b118e37ff1519aa6ee1a79d06d) )
 ROM_END
+
+const tiny_rom_entry *crusnwld19_device::device_rom_region() const
+{
+	return ROM_NAME( crusnwld19 );
+}
 
 
 ROM_START( crusnwld17 ) /* Version 1.7, Fri Jan 24 1997 - 16:23:59 */
@@ -1510,6 +1439,11 @@ ROM_START( crusnwld17 ) /* Version 1.7, Fri Jan 24 1997 - 16:23:59 */
 	ROM_LOAD32_BYTE( "cwld.u25",     0x0c00003, 0x100000, CRC(0dad97a9) SHA1(cdb0c02da35243b118e37ff1519aa6ee1a79d06d) )
 ROM_END
 
+const tiny_rom_entry *crusnwld17_device::device_rom_region() const
+{
+	return ROM_NAME( crusnwld17 );
+}
+
 
 ROM_START( crusnwld13 ) /* Version 1.3, Mon Nov 25 1996 - 23:22:45 */
 	ROM_REGION16_LE( 0x1000000, "dcs", ROMREGION_ERASEFF )  /* sound data */
@@ -1540,6 +1474,11 @@ ROM_START( crusnwld13 ) /* Version 1.3, Mon Nov 25 1996 - 23:22:45 */
 	ROM_LOAD32_BYTE( "cwld.u24",     0x0c00002, 0x100000, CRC(83485401) SHA1(58407818a82a7a3657530dcda7e373e678b58ab2) )
 	ROM_LOAD32_BYTE( "cwld.u25",     0x0c00003, 0x100000, CRC(0dad97a9) SHA1(cdb0c02da35243b118e37ff1519aa6ee1a79d06d) )
 ROM_END
+
+const tiny_rom_entry *crusnwld13_device::device_rom_region() const
+{
+	return ROM_NAME( crusnwld13 );
+}
 
 
 ROM_START( offroadc ) /* Version 1.63, Tue 03-03-98 */
@@ -1784,89 +1723,53 @@ ROM_END
  *
  *************************************/
 
-READ32_MEMBER(midvunit_state::generic_speedup_r)
+READ32_MEMBER(midvunit_device::generic_speedup_r)
 {
 	m_maincpu->eat_cycles(100);
 	return m_generic_speedup[offset];
 }
 
 
-void midvunit_state::init_crusnusa_common(offs_t speedup)
+void midvunit_device::init_crusnusa(offs_t speedup)
 {
 	m_adc_shift = 24;
 
 	/* speedups */
-	m_maincpu->space(AS_PROGRAM).install_read_handler(speedup, speedup + 1, read32_delegate(FUNC(midvunit_state::generic_speedup_r),this));
+	m_maincpu->space(AS_PROGRAM).install_read_handler(speedup, speedup + 1, read32_delegate(FUNC(midvunit_device::generic_speedup_r),this));
 	m_generic_speedup = m_ram_base + speedup;
 }
-void midvunit_state::init_crusnusa()  { init_crusnusa_common(0xc93e); }
-void midvunit_state::init_crusnu40()  { init_crusnusa_common(0xc957); }
-void midvunit_state::init_crusnu21()  { init_crusnusa_common(0xc051); }
+
+void midvunit_state::init_crusnu41()  { uint8_t players = player_count(); for (uint8_t i = 0; i < players; ++i) m_player[i]->init_crusnusa(0xc93e); }
+void midvunit_state::init_crusnu40()  { uint8_t players = player_count(); for (uint8_t i = 0; i < players; ++i) m_player[i]->init_crusnusa(0xc957); }
+void midvunit_state::init_crusnu21()  { uint8_t players = player_count(); for (uint8_t i = 0; i < players; ++i) m_player[i]->init_crusnusa(0xc051); }
 
 
-void midvunit_state::init_crusnwld_common(offs_t speedup)
+void midvunit_device::init_crusnwld(offs_t speedup)
 {
 	m_adc_shift = 16;
 
 	/* control register is different */
-	m_maincpu->space(AS_PROGRAM).install_write_handler(0x994000, 0x994000, write32_delegate(FUNC(midvunit_state::crusnwld_control_w),this));
+	m_maincpu->space(AS_PROGRAM).install_write_handler(0x994000, 0x994000, write32_delegate(FUNC(midvunit_device::crusnwld_control_w),this));
 
-	m_maincpu->space(AS_PROGRAM).install_read_handler(0x991030, 0x991030, read32_delegate(FUNC(midvunit_state::crusnwld_serial_status_r),this));
-	m_maincpu->space(AS_PROGRAM).install_read_handler(0x996000, 0x996000, read32_delegate(FUNC(midvunit_state::crusnwld_serial_data_r),this));
-	m_maincpu->space(AS_PROGRAM).install_write_handler(0x996000, 0x996000, write32_delegate(FUNC(midvunit_state::crusnwld_serial_data_w),this));
+	m_maincpu->space(AS_PROGRAM).install_read_handler(0x991030, 0x991030, read32_delegate(FUNC(midvunit_device::crusnwld_serial_status_r),this));
+	m_maincpu->space(AS_PROGRAM).install_read_handler(0x996000, 0x996000, read32_delegate(FUNC(midvunit_device::crusnwld_serial_data_r),this));
+	m_maincpu->space(AS_PROGRAM).install_write_handler(0x996000, 0x996000, write32_delegate(FUNC(midvunit_device::crusnwld_serial_data_w),this));
 
 	/* install strange protection device */
-	m_maincpu->space(AS_PROGRAM).install_read_handler(0x9d0000, 0x9d1fff, read32_delegate(FUNC(midvunit_state::bit_data_r),this));
-	m_maincpu->space(AS_PROGRAM).install_write_handler(0x9d0000, 0x9d0000, write32_delegate(FUNC(midvunit_state::bit_reset_w),this));
+	m_maincpu->space(AS_PROGRAM).install_read_handler(0x9d0000, 0x9d1fff, read32_delegate(FUNC(midvunit_device::bit_data_r),this));
+	m_maincpu->space(AS_PROGRAM).install_write_handler(0x9d0000, 0x9d0000, write32_delegate(FUNC(midvunit_device::bit_reset_w),this));
 
 	/* speedups */
 	if (speedup) {
-		m_maincpu->space(AS_PROGRAM).install_read_handler(speedup, speedup + 1, read32_delegate(FUNC(midvunit_state::generic_speedup_r),this));
+		m_maincpu->space(AS_PROGRAM).install_read_handler(speedup, speedup + 1, read32_delegate(FUNC(midvunit_device::generic_speedup_r),this));
 		m_generic_speedup = m_ram_base + speedup;
 	}
 }
-void midvunit_state::init_crusnwld()  { init_crusnwld_common(0xd4c0); }
+void midvunit_state::init_crusnwld()  { uint8_t players = player_count(); for (uint8_t i = 0; i < players; ++i) m_player[i]->init_crusnwld(0xd4c0); }
 #if 0
-void midvunit_state::init_crusnw20()  { init_crusnwld_common(0xd49c); }
-void midvunit_state::init_crusnw13()  { init_crusnwld_common(0); }
+void midvunit_state::init_crusnw20()  { uint8_t players = player_count(); for (uint8_t i = 0; i < players; ++i) m_player[i]->init_crusnwld(0xd49c); }
+void midvunit_state::init_crusnw13()  { uint8_t players = player_count(); for (uint8_t i = 0; i < players; ++i) m_player[i]->init_crusnwld(0); }
 #endif
-
-void midvunit_state::init_offroadc()
-{
-	m_adc_shift = 16;
-
-	/* control register is different */
-	m_maincpu->space(AS_PROGRAM).install_write_handler(0x994000, 0x994000, write32_delegate(FUNC(midvunit_state::crusnwld_control_w),this));
-
-	m_maincpu->space(AS_PROGRAM).install_read_handler(0x991030, 0x991030, read32_delegate(FUNC(midvunit_state::offroadc_serial_status_r),this));
-	m_maincpu->space(AS_PROGRAM).install_readwrite_handler(0x996000, 0x996000, read32_delegate(FUNC(midvunit_state::offroadc_serial_data_r),this), write32_delegate(FUNC(midvunit_state::offroadc_serial_data_w),this));
-
-	/* speedups */
-	m_maincpu->space(AS_PROGRAM).install_read_handler(0x195aa, 0x195aa, read32_delegate(FUNC(midvunit_state::generic_speedup_r),this));
-	m_generic_speedup = m_ram_base + 0x195aa;
-}
-
-
-void midvunit_state::init_wargods()
-{
-	uint8_t default_nvram[256];
-
-	/* we need proper VRAM */
-	memset(default_nvram, 0xff, sizeof(default_nvram));
-	default_nvram[0x0e] = default_nvram[0x2e] = 0x67;
-	default_nvram[0x0f] = default_nvram[0x2f] = 0x32;
-	default_nvram[0x10] = default_nvram[0x30] = 0x0a;
-	default_nvram[0x11] = default_nvram[0x31] = 0x00;
-	default_nvram[0x12] = default_nvram[0x32] = 0xaf;
-	default_nvram[0x17] = default_nvram[0x37] = 0xd8;
-	default_nvram[0x18] = default_nvram[0x38] = 0xe7;
-	m_midway_ioasic->set_default_nvram(default_nvram);
-
-	/* speedups */
-	m_maincpu->space(AS_PROGRAM).install_read_handler(0x2f4c, 0x2f4c, read32_delegate(FUNC(midvunit_state::generic_speedup_r),this));
-	m_generic_speedup = m_ram_base + 0x2f4c;
-}
-
 
 
 /*************************************
@@ -1875,24 +1778,24 @@ void midvunit_state::init_wargods()
  *
  *************************************/
 
-GAMEL( 1994, crusnusa,   0,        midvunit, crusnusa, midvunit_state, init_crusnusa, ROT0, "Midway", "Cruis'n USA (rev L4.1)", MACHINE_SUPPORTS_SAVE, layout_crusnusa )
-GAMEL( 1994, crusnusa40, crusnusa, midvunit, crusnusa, midvunit_state, init_crusnu40, ROT0, "Midway", "Cruis'n USA (rev L4.0)", MACHINE_SUPPORTS_SAVE, layout_crusnusa )
-GAMEL( 1994, crusnusa21, crusnusa, midvunit, crusnusa, midvunit_state, init_crusnu21, ROT0, "Midway", "Cruis'n USA (rev L2.1)", MACHINE_SUPPORTS_SAVE, layout_crusnusa )
+GAME( 1994, crusnusa,   0,        crusnusa41, midvunit_dips, midvunit_state, init_crusnu41, ROT0, "Midway", "Cruis'n USA (rev L4.1)", MACHINE_SUPPORTS_SAVE )
+GAME( 1994, crusnusa40, crusnusa, crusnusa40, midvunit_dips, midvunit_state, init_crusnu40, ROT0, "Midway", "Cruis'n USA (rev L4.0)", MACHINE_SUPPORTS_SAVE )
+GAME( 1994, crusnusa21, crusnusa, crusnusa21, midvunit_dips, midvunit_state, init_crusnu21, ROT0, "Midway", "Cruis'n USA (rev L2.1)", MACHINE_SUPPORTS_SAVE )
 
-GAMEL( 1996, crusnwld,   0,        crusnwld, crusnwld, midvunit_state, init_crusnwld, ROT0, "Midway", "Cruis'n World (rev L2.5)", MACHINE_SUPPORTS_SAVE, layout_crusnusa )
-GAMEL( 1996, crusnwld24, crusnwld, crusnwld, crusnwld, midvunit_state, init_crusnwld, ROT0, "Midway", "Cruis'n World (rev L2.4)", MACHINE_SUPPORTS_SAVE, layout_crusnusa )
-GAMEL( 1996, crusnwld23, crusnwld, crusnwld, crusnwld, midvunit_state, init_crusnwld, ROT0, "Midway", "Cruis'n World (rev L2.3)", MACHINE_SUPPORTS_SAVE, layout_crusnusa )
-GAMEL( 1996, crusnwld20, crusnwld, crusnwld, crusnwld, midvunit_state, init_crusnwld, ROT0, "Midway", "Cruis'n World (rev L2.0)", MACHINE_SUPPORTS_SAVE, layout_crusnusa )
-GAMEL( 1996, crusnwld19, crusnwld, crusnwld, crusnwld, midvunit_state, init_crusnwld, ROT0, "Midway", "Cruis'n World (rev L1.9)", MACHINE_SUPPORTS_SAVE, layout_crusnusa )
-GAMEL( 1996, crusnwld17, crusnwld, crusnwld, crusnwld, midvunit_state, init_crusnwld, ROT0, "Midway", "Cruis'n World (rev L1.7)", MACHINE_SUPPORTS_SAVE, layout_crusnusa )
-GAMEL( 1996, crusnwld13, crusnwld, crusnwld, crusnwld, midvunit_state, init_crusnwld, ROT0, "Midway", "Cruis'n World (rev L1.3)", MACHINE_SUPPORTS_SAVE, layout_crusnusa )
+GAME( 1996, crusnwld,   0,        crusnwld25, midvunit_dips, midvunit_state, init_crusnwld, ROT0, "Midway", "Cruis'n World (rev L2.5)", MACHINE_SUPPORTS_SAVE )
+GAME( 1996, crusnwld24, crusnwld, crusnwld24, midvunit_dips, midvunit_state, init_crusnwld, ROT0, "Midway", "Cruis'n World (rev L2.4)", MACHINE_SUPPORTS_SAVE )
+GAME( 1996, crusnwld23, crusnwld, crusnwld23, midvunit_dips, midvunit_state, init_crusnwld, ROT0, "Midway", "Cruis'n World (rev L2.3)", MACHINE_SUPPORTS_SAVE )
+GAME( 1996, crusnwld20, crusnwld, crusnwld20, midvunit_dips, midvunit_state, init_crusnwld, ROT0, "Midway", "Cruis'n World (rev L2.0)", MACHINE_SUPPORTS_SAVE )
+GAME( 1996, crusnwld19, crusnwld, crusnwld19, midvunit_dips, midvunit_state, init_crusnwld, ROT0, "Midway", "Cruis'n World (rev L1.9)", MACHINE_SUPPORTS_SAVE )
+GAME( 1996, crusnwld17, crusnwld, crusnwld17, midvunit_dips, midvunit_state, init_crusnwld, ROT0, "Midway", "Cruis'n World (rev L1.7)", MACHINE_SUPPORTS_SAVE )
+GAME( 1996, crusnwld13, crusnwld, crusnwld13, midvunit_dips, midvunit_state, init_crusnwld, ROT0, "Midway", "Cruis'n World (rev L1.3)", MACHINE_SUPPORTS_SAVE )
 
-GAMEL( 1997, offroadc,  0,        offroadc, offroadc, midvunit_state, init_offroadc, ROT0, "Midway", "Off Road Challenge (v1.63)", MACHINE_SUPPORTS_SAVE, layout_crusnusa )
-GAMEL( 1997, offroadc5, offroadc, offroadc, offroadc, midvunit_state, init_offroadc, ROT0, "Midway", "Off Road Challenge (v1.50)", MACHINE_SUPPORTS_SAVE, layout_crusnusa )
-GAMEL( 1997, offroadc4, offroadc, offroadc, offroadc, midvunit_state, init_offroadc, ROT0, "Midway", "Off Road Challenge (v1.40)", MACHINE_SUPPORTS_SAVE, layout_crusnusa )
-GAMEL( 1997, offroadc3, offroadc, offroadc, offroadc, midvunit_state, init_offroadc, ROT0, "Midway", "Off Road Challenge (v1.30)", MACHINE_SUPPORTS_SAVE, layout_crusnusa )
-GAMEL( 1997, offroadc1, offroadc, offroadc, offroadc, midvunit_state, init_offroadc, ROT0, "Midway", "Off Road Challenge (v1.10)", MACHINE_SUPPORTS_SAVE, layout_crusnusa )
+GAME( 1997, offroadc,  0,        crusnusa41, midvunit_dips, midvunit_state, init_crusnu41, ROT0, "Midway", "Off Road Challenge (v1.63)", MACHINE_SUPPORTS_SAVE )
+GAME( 1997, offroadc5, offroadc, crusnusa41, midvunit_dips, midvunit_state, init_crusnu41, ROT0, "Midway", "Off Road Challenge (v1.50)", MACHINE_SUPPORTS_SAVE )
+GAME( 1997, offroadc4, offroadc, crusnusa41, midvunit_dips, midvunit_state, init_crusnu41, ROT0, "Midway", "Off Road Challenge (v1.40)", MACHINE_SUPPORTS_SAVE )
+GAME( 1997, offroadc3, offroadc, crusnusa41, midvunit_dips, midvunit_state, init_crusnu41, ROT0, "Midway", "Off Road Challenge (v1.30)", MACHINE_SUPPORTS_SAVE )
+GAME( 1997, offroadc1, offroadc, crusnusa41, midvunit_dips, midvunit_state, init_crusnu41, ROT0, "Midway", "Off Road Challenge (v1.10)", MACHINE_SUPPORTS_SAVE )
 
-GAME( 1995, wargods,   0,        midvplus, wargods, midvunit_state,  init_wargods,  ROT0, "Midway", "War Gods (HD 10/09/1996 - Dual Resolution)", MACHINE_SUPPORTS_SAVE )
-GAME( 1995, wargodsa,  wargods,  midvplus, wargodsa, midvunit_state, init_wargods,  ROT0, "Midway", "War Gods (HD 08/15/1996)", MACHINE_SUPPORTS_SAVE )
-GAME( 1995, wargodsb,  wargods,  midvplus, wargodsa, midvunit_state, init_wargods,  ROT0, "Midway", "War Gods (HD 12/11/1995)", MACHINE_SUPPORTS_SAVE )
+GAME( 1995, wargods,   0,        crusnusa41, midvunit_dips, midvunit_state,  init_crusnu41,  ROT0, "Midway", "War Gods (HD 10/09/1996 - Dual Resolution)", MACHINE_SUPPORTS_SAVE )
+GAME( 1995, wargodsa,  wargods,  crusnusa41, midvunit_dips, midvunit_state, init_crusnu41,  ROT0, "Midway", "War Gods (HD 08/15/1996)", MACHINE_SUPPORTS_SAVE )
+GAME( 1995, wargodsb,  wargods,  crusnusa41, midvunit_dips, midvunit_state, init_crusnu41,  ROT0, "Midway", "War Gods (HD 12/11/1995)", MACHINE_SUPPORTS_SAVE )

@@ -26,17 +26,17 @@ struct midvunit_object_data
 	uint8_t       dither;
 };
 
-class midvunit_state;
+class midvunit_device;
 
 class midvunit_renderer : public poly_manager<float, midvunit_object_data, 2, 4000>
 {
 public:
-	midvunit_renderer(midvunit_state &state);
+	midvunit_renderer(midvunit_device &state);
 	void process_dma_queue();
 	void make_vertices_inclusive(vertex_t *vert);
 
 private:
-	midvunit_state &m_state;
+	midvunit_device &m_state;
 
 	void render_flat(int32_t scanline, const extent_t &extent, const midvunit_object_data &extradata, int threadid);
 	void render_tex(int32_t scanline, const extent_t &extent, const midvunit_object_data &extradata, int threadid);
@@ -44,11 +44,11 @@ private:
 	void render_textransmask(int32_t scanline, const extent_t &extent, const midvunit_object_data &extradata, int threadid);
 };
 
-class midvunit_state : public driver_device
+class midvunit_device : public device_t
 {
 public:
-	midvunit_state(const machine_config &mconfig, device_type type, const char *tag)
-		: driver_device(mconfig, type, tag),
+	midvunit_device(const machine_config &mconfig, device_type type, const char *tag, device_t *owner, uint32_t clock)
+		: device_t(mconfig, type, tag, owner, clock),
 		m_videoram(*this, "videoram", 32),
 		m_textureram(*this, "textureram"),
 		m_screen(*this, "screen"),
@@ -66,25 +66,12 @@ public:
 		m_midway_ioasic(*this, "ioasic"),
 		m_ata(*this, "ata"),
 		m_timer(*this, "timer%u", 0U),
-		m_dcs(*this, "dcs"),
+		m_dcs(*owner, "dcs"),
 		m_generic_paletteram_32(*this, "paletteram"),
 		m_optional_drivers(*this, "lamp%u", 0U),
+		m_dsw(*owner, "DSW"),
 		m_in1(*this, "IN1"),
-		m_dsw(*this, "DSW"),
 		m_motion(*this, "MOTION") { }
-
-	void midvcommon(machine_config &config);
-	void crusnwld(machine_config &config);
-	void midvplus(machine_config &config);
-	void offroadc(machine_config &config);
-	void midvunit(machine_config &config);
-
-	void init_crusnu40();
-	void init_crusnu21();
-	void init_crusnwld();
-	void init_wargods();
-	void init_offroadc();
-	void init_crusnusa();
 
 	uint16_t m_page_control;
 	uint16_t m_dma_data[16];
@@ -96,7 +83,15 @@ public:
 
 	DECLARE_CUSTOM_INPUT_MEMBER(motion_r);
 
-private:
+	void midvcommon(machine_config &config);
+	void init_crusnusa(offs_t speedup);
+	void init_crusnwld(offs_t speedup);
+	void init_offroadc();
+	void init_wargods();
+	void video_start();
+	void set_link(uint8_t player_id, uint8_t player_count, midvunit_device *target);
+
+protected:
 	enum
 	{
 		TIMER_SCANLINE
@@ -127,8 +122,14 @@ private:
 	uint8_t m_galil_output_index;
 	char m_galil_output[450];
 	uint8_t m_wheel_board_output;
+	uint8_t m_link_irq;
 	uint32_t m_wheel_board_last;
 	uint32_t m_wheel_board_u8_latch;
+	uint16_t m_link_dips;
+	uint16_t m_link_data;
+	uint16_t m_link_input_last;
+	uint16_t m_link_output_last;
+	midvunit_device *m_link_device;
 	DECLARE_WRITE32_MEMBER(midvunit_dma_queue_w);
 	DECLARE_READ32_MEMBER(midvunit_dma_queue_entries_r);
 	DECLARE_READ32_MEMBER(midvunit_dma_trigger_r);
@@ -166,12 +167,13 @@ private:
 	DECLARE_READ32_MEMBER(generic_speedup_r);
 	DECLARE_READ32_MEMBER(midvunit_wheel_board_r);
 	DECLARE_WRITE32_MEMBER(midvunit_wheel_board_w);
+	DECLARE_READ16_MEMBER(midvunit_dipswitches_r);
+	DECLARE_READ32_MEMBER(midvunit_irq_r);
+	DECLARE_READ32_MEMBER(midvunit_comm_r);
+	DECLARE_WRITE32_MEMBER(midvunit_comm_w);
 	void set_input(const char *s);
-	void init_crusnwld_common(offs_t speedup);
-	void init_crusnusa_common(offs_t speedup);
-	virtual void machine_start() override;
-	virtual void machine_reset() override;
-	virtual void video_start() override;
+	virtual void device_start() override;
+	virtual void device_reset() override;
 	DECLARE_MACHINE_RESET(midvplus);
 	uint32_t screen_update_midvunit(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 	TIMER_CALLBACK_MEMBER(scanline_timer_cb);
@@ -184,16 +186,191 @@ private:
 	optional_device<midway_ioasic_device> m_midway_ioasic;
 	optional_device<ata_interface_device> m_ata;
 	required_device_array<timer_device, 2> m_timer;
-	required_device<dcs_audio_device> m_dcs;
+	optional_device<dcs_audio_device> m_dcs;
 	required_shared_ptr<uint32_t> m_generic_paletteram_32;
 	output_finder<8> m_optional_drivers;
-	optional_ioport m_in1;
 	optional_ioport m_dsw;
+	optional_ioport m_in1;
 	optional_ioport m_motion;
 	void postload();
 
-	void midvplus_map(address_map &map);
 	void midvunit_map(address_map &map);
+	void midvplus_map(address_map &map);
 
 	virtual void device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr) override;
+};
+
+class midvunit_state : public driver_device
+{
+public:
+	midvunit_state(const machine_config &mconfig, device_type type, const char *tag)
+		: driver_device(mconfig, type, tag),
+		m_player(*this, "player%u", 0U) { }
+
+	void common(machine_config &config);
+	void crusnusa41(machine_config &config);
+	void crusnusa40(machine_config &config);
+	void crusnusa21(machine_config &config);
+	void crusnwld25(machine_config &config);
+	void crusnwld24(machine_config &config);
+	void crusnwld23(machine_config &config);
+	void crusnwld20(machine_config &config);
+	void crusnwld19(machine_config &config);
+	void crusnwld17(machine_config &config);
+	void crusnwld13(machine_config &config);
+
+	void init_crusnu41();
+	void init_crusnu40();
+	void init_crusnu21();
+	void init_crusnwld();
+	void init_offroadc();
+	void init_wargods();
+	uint8_t player_count() { return 2; }
+
+private:
+	virtual void video_start() override;
+	optional_device_array<midvunit_device, 4> m_player;
+};
+
+class crusnusa_device : public midvunit_device
+{
+public:
+	crusnusa_device(const machine_config &mconfig, device_type type, const char *tag, device_t *owner, uint32_t clock)
+		: midvunit_device(mconfig, type, tag, owner, clock) { }
+		
+	virtual ioport_constructor device_input_ports() const override;
+private:
+	virtual void device_add_mconfig(machine_config &config) override;
+};
+
+DECLARE_DEVICE_TYPE(MIDVUNIT_CRUSNUSA41, crusnusa41_device)
+
+
+class crusnusa41_device : public crusnusa_device
+{
+public:
+	crusnusa41_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
+		: crusnusa_device(mconfig, MIDVUNIT_CRUSNUSA41, tag, owner, clock) { }
+
+private:
+	const tiny_rom_entry *device_rom_region() const override;
+};
+
+DECLARE_DEVICE_TYPE(MIDVUNIT_CRUSNUSA40, crusnusa40_device)
+
+class crusnusa40_device : public crusnusa_device
+{
+public:
+	crusnusa40_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
+		: crusnusa_device(mconfig, MIDVUNIT_CRUSNUSA40, tag, owner, clock) { }
+
+private:
+	const tiny_rom_entry *device_rom_region() const override;
+};
+
+DECLARE_DEVICE_TYPE(MIDVUNIT_CRUSNUSA21, crusnusa21_device)
+
+class crusnusa21_device : public crusnusa_device
+{
+public:
+	crusnusa21_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
+		: crusnusa_device(mconfig, MIDVUNIT_CRUSNUSA21, tag, owner, clock) { }
+
+private:
+	const tiny_rom_entry *device_rom_region() const override;
+};
+
+class crusnwld_device : public midvunit_device
+{
+public:
+	crusnwld_device(const machine_config &mconfig, device_type type, const char *tag, device_t *owner, uint32_t clock)
+		: midvunit_device(mconfig, type, tag, owner, clock) { }
+		
+	virtual ioport_constructor device_input_ports() const override;
+private:
+	virtual void device_add_mconfig(machine_config &config) override;
+};
+
+DECLARE_DEVICE_TYPE(MIDVUNIT_CRUSNWRD25, crusnwld25_device)
+
+class crusnwld25_device : public crusnwld_device
+{
+public:
+	crusnwld25_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
+		: crusnwld_device(mconfig, MIDVUNIT_CRUSNWRD25, tag, owner, clock) { }
+
+private:
+	const tiny_rom_entry *device_rom_region() const override;
+};
+
+DECLARE_DEVICE_TYPE(MIDVUNIT_CRUSNWRD24, crusnwld24_device)
+
+class crusnwld24_device : public crusnwld_device
+{
+public:
+	crusnwld24_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
+		: crusnwld_device(mconfig, MIDVUNIT_CRUSNWRD24, tag, owner, clock) { }
+
+private:
+	const tiny_rom_entry *device_rom_region() const override;
+};
+
+DECLARE_DEVICE_TYPE(MIDVUNIT_CRUSNWRD23, crusnwld23_device)
+
+class crusnwld23_device : public crusnwld_device
+{
+public:
+	crusnwld23_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
+		: crusnwld_device(mconfig, MIDVUNIT_CRUSNWRD23, tag, owner, clock) { }
+
+private:
+	const tiny_rom_entry *device_rom_region() const override;
+};
+
+DECLARE_DEVICE_TYPE(MIDVUNIT_CRUSNWRD20, crusnwld20_device)
+
+class crusnwld20_device : public crusnwld_device
+{
+public:
+	crusnwld20_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
+		: crusnwld_device(mconfig, MIDVUNIT_CRUSNWRD20, tag, owner, clock) { }
+
+private:
+	const tiny_rom_entry *device_rom_region() const override;
+};
+
+DECLARE_DEVICE_TYPE(MIDVUNIT_CRUSNWRD19, crusnwld19_device)
+
+class crusnwld19_device : public crusnwld_device
+{
+public:
+	crusnwld19_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
+		: crusnwld_device(mconfig, MIDVUNIT_CRUSNWRD19, tag, owner, clock) { }
+
+private:
+	const tiny_rom_entry *device_rom_region() const override;
+};
+
+DECLARE_DEVICE_TYPE(MIDVUNIT_CRUSNWRD17, crusnwld17_device)
+
+class crusnwld17_device : public crusnwld_device
+{
+public:
+	crusnwld17_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
+		: crusnwld_device(mconfig, MIDVUNIT_CRUSNWRD17, tag, owner, clock) { }
+
+private:
+	const tiny_rom_entry *device_rom_region() const override;
+};
+
+DECLARE_DEVICE_TYPE(MIDVUNIT_CRUSNWRD13, crusnwld13_device)
+
+class crusnwld13_device : public crusnwld_device
+{
+public:
+	crusnwld13_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
+		: crusnwld_device(mconfig, MIDVUNIT_CRUSNWRD13, tag, owner, clock) { }
+
+private:
+	const tiny_rom_entry *device_rom_region() const override;
 };
