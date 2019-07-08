@@ -122,7 +122,6 @@ protected:
 	uint8_t m_galil_output_index;
 	char m_galil_output[450];
 	uint8_t m_wheel_board_output;
-	uint8_t m_link_irq;
 	uint32_t m_wheel_board_last;
 	uint32_t m_wheel_board_u8_latch;
 	uint16_t m_link_dips;

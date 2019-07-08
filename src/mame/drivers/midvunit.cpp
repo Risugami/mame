@@ -34,7 +34,7 @@ Known to exist but not dumped:
 //#include "crusnusa.lh"
 
 
-#define CPU_CLOCK       50000000
+#define CPU_CLOCK       50000000 / 4
 
 
 /*************************************
@@ -517,10 +517,7 @@ READ16_MEMBER(midvunit_device::midvunit_dipswitches_r)
 
 READ32_MEMBER(midvunit_device::midvunit_irq_r)
 {
-	uint32_t data = m_link_irq;
-	m_link_irq = 0;
-	logerror("midvunit_irq_r = %08X\n", data);
-	return data;
+	return 4;
 }
 
 READ32_MEMBER(midvunit_device::midvunit_comm_r)
@@ -532,7 +529,6 @@ READ32_MEMBER(midvunit_device::midvunit_comm_r)
 	}
 	else
 	{
-		m_link_device->m_maincpu->signal_interrupt_trigger();
 		uint16_t data = m_link_data;
 		if (m_link_input_last != data)
 			logerror("midvunit_comm_r = %03X\n", data);
@@ -554,9 +550,9 @@ WRITE32_MEMBER(midvunit_device::midvunit_comm_w)
 			logerror("midvunit_comm_w = %03X\n", masked);
 		m_link_output_last = masked;
 		m_link_device->m_link_data = masked;
-		if (masked & 0xF00)
-			m_link_device->m_link_irq = 4;
-		m_maincpu->spin_until_interrupt();
+		if (masked & 0x800)
+			m_link_device->m_maincpu->set_input_line(2, ASSERT_LINE);
+		m_maincpu->abort_timeslice();
 	}
 }
 
