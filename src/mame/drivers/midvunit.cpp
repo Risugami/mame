@@ -34,7 +34,7 @@ Known to exist but not dumped:
 //#include "crusnusa.lh"
 
 
-#define CPU_CLOCK       50000000 / 4
+#define CPU_CLOCK       50000000
 
 
 /*************************************
@@ -182,14 +182,14 @@ READ32_MEMBER(midvunit_device::midvunit_cmos_r)
 
 WRITE32_MEMBER(midvunit_device::midvunit_control_w)
 {
-	uint16_t olddata = m_control_data;
+	//uint16_t olddata = m_control_data;
 	COMBINE_DATA(&m_control_data);
 
 	/* bit 7 is the LED */
 
 	/* bit 3 is the watchdog */
-	if ((olddata ^ m_control_data) & 0x0008)
-		m_watchdog->watchdog_reset();
+	//if ((olddata ^ m_control_data) & 0x0008)
+	//	m_watchdog->watchdog_reset();
 
 	/* bit 1 is the DCS sound reset */
 	m_dcs->reset_w((~m_control_data >> 1) & 1);
@@ -202,15 +202,15 @@ WRITE32_MEMBER(midvunit_device::midvunit_control_w)
 
 WRITE32_MEMBER(midvunit_device::crusnwld_control_w)
 {
-	uint16_t olddata = m_control_data;
+	//uint16_t olddata = m_control_data;
 	COMBINE_DATA(&m_control_data);
 
 	/* bit 11 is the DCS sound reset */
 	m_dcs->reset_w((~m_control_data >> 11) & 1);
 
 	/* bit 9 is the watchdog */
-	if ((olddata ^ m_control_data) & 0x0200)
-		m_watchdog->watchdog_reset();
+	//if ((olddata ^ m_control_data) & 0x0200)
+	//	m_watchdog->watchdog_reset();
 
 	/* bit 8 is the LED */
 
@@ -517,6 +517,7 @@ READ16_MEMBER(midvunit_device::midvunit_dipswitches_r)
 
 READ32_MEMBER(midvunit_device::midvunit_irq_r)
 {
+	m_maincpu->set_input_line(2, m_link_data & 0x800 ? ASSERT_LINE : CLEAR_LINE);
 	return 4;
 }
 
@@ -529,11 +530,8 @@ READ32_MEMBER(midvunit_device::midvunit_comm_r)
 	}
 	else
 	{
-		uint16_t data = m_link_data;
-		if (m_link_input_last != data)
-			logerror("midvunit_comm_r = %03X\n", data);
-		m_link_input_last = data;
-		return data << 16;
+		logerror("midvunit_comm_r = %03X\n", m_link_data);
+		return m_link_data << 16;
 	}
 }
 
@@ -546,13 +544,8 @@ WRITE32_MEMBER(midvunit_device::midvunit_comm_w)
 		uint16_t sdata = data >> 16;
 		uint16_t mask = ((sdata >> 4) & 0xF00) | 0xFF;
 		uint16_t masked = sdata & mask;
-		if (m_link_output_last != masked)
-			logerror("midvunit_comm_w = %03X\n", masked);
-		m_link_output_last = masked;
+		logerror("midvunit_comm_w = %03X\n", masked);
 		m_link_device->m_link_data = masked;
-		if (masked & 0x800)
-			m_link_device->m_maincpu->set_input_line(2, ASSERT_LINE);
-		m_maincpu->abort_timeslice();
 	}
 }
 

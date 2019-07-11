@@ -126,8 +126,6 @@ protected:
 	uint32_t m_wheel_board_u8_latch;
 	uint16_t m_link_dips;
 	uint16_t m_link_data;
-	uint16_t m_link_input_last;
-	uint16_t m_link_output_last;
 	midvunit_device *m_link_device;
 	DECLARE_WRITE32_MEMBER(midvunit_dma_queue_w);
 	DECLARE_READ32_MEMBER(midvunit_dma_queue_entries_r);

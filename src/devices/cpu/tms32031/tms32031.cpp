@@ -815,8 +815,8 @@ void tms3203x_device::execute_run()
 	// non-debug case
 	if ((machine().debug_flags & DEBUG_FLAG_ENABLED) == 0)
 	{
-		while (m_icount > 0)
-		{
+		//while (m_icount > 0)
+		//{
 			if ((IREG(TMR_ST) & RMFLAG) && m_pc == IREG(TMR_RE) + 1)
 			{
 				if ((int32_t)--IREG(TMR_RC) >= 0)
@@ -834,18 +834,20 @@ void tms3203x_device::execute_run()
 						}
 					}
 				}
-				continue;
+				//continue;
 			}
-
-			execute_one();
-		}
+			else
+			{
+				execute_one();
+			}
+		//}
 	}
 
 	// debugging case
 	else
 	{
-		while (m_icount > 0)
-		{
+		//while (m_icount > 0)
+		//{
 			// watch for out-of-range stack pointers
 			if (IREG(TMR_SP) & 0xff000000)
 				machine().debug_break();
@@ -866,12 +868,14 @@ void tms3203x_device::execute_run()
 						}
 					}
 				}
-				continue;
+				//continue;
 			}
-
-			debugger_instruction_hook(m_pc);
-			execute_one();
-		}
+			else
+			{
+				debugger_instruction_hook(m_pc);
+				execute_one();
+			}
+		//}
 	}
 }
 
