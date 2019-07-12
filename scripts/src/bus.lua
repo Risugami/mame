@@ -2115,12 +2115,51 @@ if (BUSES["A2BUS"]~=null) then
 		MAME_DIR .. "src/devices/bus/a2bus/agat7ram.h",
 		MAME_DIR .. "src/devices/bus/a2bus/agat840k_hle.cpp",
 		MAME_DIR .. "src/devices/bus/a2bus/agat840k_hle.h",
+		MAME_DIR .. "src/devices/bus/a2bus/agat_fdc.cpp",
+		MAME_DIR .. "src/devices/bus/a2bus/agat_fdc.h",
 		MAME_DIR .. "src/devices/bus/a2bus/ssprite.cpp",
 		MAME_DIR .. "src/devices/bus/a2bus/ssprite.h",
 		MAME_DIR .. "src/devices/bus/a2bus/ssbapple.cpp",
 		MAME_DIR .. "src/devices/bus/a2bus/ssbapple.h",
 		MAME_DIR .. "src/devices/bus/a2bus/transwarp.cpp",
 		MAME_DIR .. "src/devices/bus/a2bus/transwarp.h",
+	}
+end
+
+---------------------------------------------------
+--
+--@src/devices/bus/a2gameio/gameio.h,BUSES["A2GAMEIO"] = true
+---------------------------------------------------
+
+if (BUSES["A2GAMEIO"]~=null) then
+	files {
+		MAME_DIR .. "src/devices/bus/a2gameio/gameio.cpp",
+		MAME_DIR .. "src/devices/bus/a2gameio/gameio.h",
+		MAME_DIR .. "src/devices/bus/a2gameio/joystick.cpp",
+		MAME_DIR .. "src/devices/bus/a2gameio/joystick.h",
+	}
+end
+
+---------------------------------------------------
+--
+--@src/devices/bus/nscsi/cd.h,BUSES["NSCSI"] = true
+--@src/devices/bus/nscsi/devices.h,BUSES["NSCSI"] = true
+--@src/devices/bus/nscsi/hd.h,BUSES["NSCSI"] = true
+--@src/devices/bus/nscsi/s1410.h,BUSES["NSCSI"] = true
+---------------------------------------------------
+
+if (BUSES["NSCSI"]~=null) then
+	files {
+		MAME_DIR .. "src/devices/bus/nscsi/cd.cpp",
+		MAME_DIR .. "src/devices/bus/nscsi/cd.h",
+		MAME_DIR .. "src/devices/bus/nscsi/cw7501.cpp",
+		MAME_DIR .. "src/devices/bus/nscsi/cw7501.h",
+		MAME_DIR .. "src/devices/bus/nscsi/devices.cpp",
+		MAME_DIR .. "src/devices/bus/nscsi/devices.h",
+		MAME_DIR .. "src/devices/bus/nscsi/hd.cpp",
+		MAME_DIR .. "src/devices/bus/nscsi/hd.h",
+		MAME_DIR .. "src/devices/bus/nscsi/s1410.cpp",
+		MAME_DIR .. "src/devices/bus/nscsi/s1410.h",
 	}
 end
 

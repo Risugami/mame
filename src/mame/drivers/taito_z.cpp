@@ -3051,22 +3051,12 @@ static const gfx_layout tile16x16_layout =
 };
 
 static GFXDECODE_START( gfx_taitoz )
-	GFXDECODE_ENTRY( "sprites",   0x0, tile16x8_layout,      0, 256 )    /* sprite parts */
-	GFXDECODE_ENTRY( "tc0100scn", 0x0, gfx_8x8x4_packed_msb, 0, 256 )    /* playfield */
+	GFXDECODE_ENTRY( "sprites", 0x0, tile16x8_layout, 0, 256 )    /* sprite parts */
 GFXDECODE_END
-
-/* taitoic.c TC0100SCN routines expect scr stuff to be in second gfx
-   slot, so 2nd batch of obj must be placed third */
 
 static GFXDECODE_START( gfx_chasehq )
-	GFXDECODE_ENTRY( "sprites",   0x0, tile16x16_layout,     0, 256 )   /* sprite parts */
-	GFXDECODE_ENTRY( "tc0100scn", 0x0, gfx_8x8x4_packed_msb, 0, 256 )   /* playfield */
-	GFXDECODE_ENTRY( "sprites2",  0x0, tile16x16_layout,     0, 256 )   /* sprite parts */
-GFXDECODE_END
-
-static GFXDECODE_START( gfx_dblaxle )
-	GFXDECODE_ENTRY( "sprites",   0x0, tile16x8_layout,        0, 256 )    /* sprite parts */
-	GFXDECODE_ENTRY( "tc0480scp", 0x0, gfx_16x16x4_packed_lsb, 0, 256 )    /* playfield */
+	GFXDECODE_ENTRY( "sprites",  0x0, tile16x16_layout, 0, 256 )   /* sprite parts */
+	GFXDECODE_ENTRY( "sprites2", 0x0, tile16x16_layout, 0, 256 )   /* sprite parts */
 GFXDECODE_END
 
 
@@ -3177,8 +3167,6 @@ void taitoz_state::contcirc(machine_config &config)
 	MCFG_VIDEO_START_OVERRIDE(taitoz_state,taitoz)
 
 	TC0100SCN(config, m_tc0100scn, 0);
-	m_tc0100scn->set_gfx_region(1);
-	m_tc0100scn->set_gfxdecode_tag(m_gfxdecode);
 	m_tc0100scn->set_palette(m_tc0110pcr);
 
 	TC0150ROD(config, m_tc0150rod, 0);
@@ -3246,8 +3234,6 @@ void taitoz_state::chasehq(machine_config &config)
 	MCFG_VIDEO_START_OVERRIDE(taitoz_state,taitoz)
 
 	TC0100SCN(config, m_tc0100scn, 0);
-	m_tc0100scn->set_gfx_region(1);
-	m_tc0100scn->set_gfxdecode_tag(m_gfxdecode);
 	m_tc0100scn->set_palette(m_tc0110pcr);
 
 	TC0150ROD(config, m_tc0150rod, 0);
@@ -3315,8 +3301,6 @@ void taitoz_state::enforce(machine_config &config)
 	MCFG_VIDEO_START_OVERRIDE(taitoz_state,taitoz)
 
 	TC0100SCN(config, m_tc0100scn, 0);
-	m_tc0100scn->set_gfx_region(1);
-	m_tc0100scn->set_gfxdecode_tag(m_gfxdecode);
 	m_tc0100scn->set_palette(m_tc0110pcr);
 
 	TC0150ROD(config, m_tc0150rod, 0);
@@ -3382,8 +3366,6 @@ void taitoz_state::bshark_base(machine_config &config)
 	MCFG_VIDEO_START_OVERRIDE(taitoz_state,taitoz)
 
 	TC0100SCN(config, m_tc0100scn, 0);
-	m_tc0100scn->set_gfx_region(1);
-	m_tc0100scn->set_gfxdecode_tag(m_gfxdecode);
 	m_tc0100scn->set_palette("palette");
 
 	TC0150ROD(config, m_tc0150rod, 0);
@@ -3465,8 +3447,6 @@ void taitoz_state::sci(machine_config &config)
 	MCFG_VIDEO_START_OVERRIDE(taitoz_state,taitoz)
 
 	TC0100SCN(config, m_tc0100scn, 0);
-	m_tc0100scn->set_gfx_region(1);
-	m_tc0100scn->set_gfxdecode_tag(m_gfxdecode);
 	m_tc0100scn->set_palette("palette");
 
 	TC0150ROD(config, m_tc0150rod, 0);
@@ -3539,8 +3519,6 @@ void taitoz_state::nightstr(machine_config &config)
 	MCFG_VIDEO_START_OVERRIDE(taitoz_state,taitoz)
 
 	TC0100SCN(config, m_tc0100scn, 0);
-	m_tc0100scn->set_gfx_region(1);
-	m_tc0100scn->set_gfxdecode_tag(m_gfxdecode);
 	m_tc0100scn->set_palette(m_tc0110pcr);
 
 	TC0150ROD(config, m_tc0150rod, 0);
@@ -3608,8 +3586,6 @@ void taitoz_state::aquajack(machine_config &config)
 	MCFG_VIDEO_START_OVERRIDE(taitoz_state,taitoz)
 
 	TC0100SCN(config, m_tc0100scn, 0);
-	m_tc0100scn->set_gfx_region(1);
-	m_tc0100scn->set_gfxdecode_tag(m_gfxdecode);
 	m_tc0100scn->set_palette(m_tc0110pcr);
 
 	TC0150ROD(config, m_tc0150rod, 0);
@@ -3680,9 +3656,7 @@ void taitoz_state::spacegun(machine_config &config)
 	GFXDECODE(config, m_gfxdecode, m_tc0110pcr, gfx_taitoz);
 
 	TC0100SCN(config, m_tc0100scn, 0);
-	m_tc0100scn->set_gfx_region(1);
 	m_tc0100scn->set_offsets(4, 0);
-	m_tc0100scn->set_gfxdecode_tag(m_gfxdecode);
 	m_tc0100scn->set_palette(m_tc0110pcr);
 
 	TC0110PCR(config, m_tc0110pcr, 0);
@@ -3740,16 +3714,14 @@ void taitoz_state::dblaxle(machine_config &config)
 	screen.set_screen_update(FUNC(taitoz_state::screen_update_dblaxle));
 	screen.set_palette("palette");
 
-	GFXDECODE(config, m_gfxdecode, "palette", gfx_dblaxle);
+	GFXDECODE(config, m_gfxdecode, "palette", gfx_taitoz);
 	PALETTE(config, "palette").set_format(palette_device::xBGR_555, 4096);
 
 	MCFG_VIDEO_START_OVERRIDE(taitoz_state,taitoz)
 
 	TC0480SCP(config, m_tc0480scp, 0);
-	m_tc0480scp->set_gfx_region(1);
 	m_tc0480scp->set_palette("palette");
 	m_tc0480scp->set_offsets(0x1f, 0x08);
-	m_tc0480scp->set_gfxdecode_tag(m_gfxdecode);
 
 	TC0150ROD(config, m_tc0150rod, 0);
 
@@ -3809,16 +3781,14 @@ void taitoz_state::racingb(machine_config &config)
 	screen.set_screen_update(FUNC(taitoz_state::screen_update_racingb));
 	screen.set_palette("palette");
 
-	GFXDECODE(config, m_gfxdecode, "palette", gfx_dblaxle);
+	GFXDECODE(config, m_gfxdecode, "palette", gfx_taitoz);
 	PALETTE(config, "palette").set_format(palette_device::xBGR_555, 4096);
 
 	MCFG_VIDEO_START_OVERRIDE(taitoz_state,taitoz)
 
 	TC0480SCP(config, m_tc0480scp, 0);
-	m_tc0480scp->set_gfx_region(1);
 	m_tc0480scp->set_palette("palette");
 	m_tc0480scp->set_offsets(0x1f, 0x08);
-	m_tc0480scp->set_gfxdecode_tag(m_gfxdecode);
 
 	TC0150ROD(config, m_tc0150rod, 0);
 
@@ -5576,8 +5546,8 @@ GAME( 1990, spacegunu,  spacegun, spacegun,  spacegnu,  taitoz_state, init_bshar
 
 GAMEL(1991, dblaxle,    0,        dblaxle,   dblaxles,  taitoz_state, empty_init,  ROT0,               "Taito America Corporation", "Double Axle (US, Rev 1)", MACHINE_IMPERFECT_GRAPHICS | MACHINE_SUPPORTS_SAVE, layout_dblaxle )
 GAMEL(1991, dblaxleu,   dblaxle,  dblaxle,   dblaxles,  taitoz_state, empty_init,  ROT0,               "Taito America Corporation", "Double Axle (US)", MACHINE_IMPERFECT_GRAPHICS | MACHINE_SUPPORTS_SAVE, layout_dblaxle )
-GAMEL(1991, dblaxleul,  dblaxle,  dblaxle,   dblaxle,   taitoz_state, empty_init,  ROT0,               "Taito America Corporation", "Double Axle (US, Rev 1, Linkable)", MACHINE_IMPERFECT_GRAPHICS | MACHINE_SUPPORTS_SAVE, layout_dblaxle )
-GAMEL(1991, pwheelsj,   dblaxle,  dblaxle,   pwheelsj,  taitoz_state, empty_init,  ROT0,               "Taito Corporation",         "Power Wheels (Japan, Rev 2, Linkable)", MACHINE_IMPERFECT_GRAPHICS | MACHINE_SUPPORTS_SAVE, layout_dblaxle )
+GAMEL(1991, dblaxleul,  dblaxle,  dblaxle,   dblaxle,   taitoz_state, empty_init,  ROT0,               "Taito America Corporation", "Double Axle (US, Rev 1, Linkable)", MACHINE_IMPERFECT_GRAPHICS | MACHINE_SUPPORTS_SAVE | MACHINE_NODEVICE_LAN, layout_dblaxle )
+GAMEL(1991, pwheelsj,   dblaxle,  dblaxle,   pwheelsj,  taitoz_state, empty_init,  ROT0,               "Taito Corporation",         "Power Wheels (Japan, Rev 2, Linkable)", MACHINE_IMPERFECT_GRAPHICS | MACHINE_SUPPORTS_SAVE | MACHINE_NODEVICE_LAN, layout_dblaxle )
 
-GAMEL(1991, racingb,    0,        racingb,   racingb,   taitoz_state, empty_init,  ROT0,               "Taito Corporation Japan",   "Racing Beat (World)", MACHINE_IMPERFECT_GRAPHICS | MACHINE_SUPPORTS_SAVE, layout_dblaxle )
-GAMEL(1991, racingbj,   racingb,  racingb,   racingb,   taitoz_state, empty_init,  ROT0,               "Taito Corporation",         "Racing Beat (Japan)", MACHINE_IMPERFECT_GRAPHICS | MACHINE_SUPPORTS_SAVE, layout_dblaxle )
+GAMEL(1991, racingb,    0,        racingb,   racingb,   taitoz_state, empty_init,  ROT0,               "Taito Corporation Japan",   "Racing Beat (World)", MACHINE_IMPERFECT_GRAPHICS | MACHINE_SUPPORTS_SAVE | MACHINE_NODEVICE_LAN, layout_dblaxle )
+GAMEL(1991, racingbj,   racingb,  racingb,   racingb,   taitoz_state, empty_init,  ROT0,               "Taito Corporation",         "Racing Beat (Japan)", MACHINE_IMPERFECT_GRAPHICS | MACHINE_SUPPORTS_SAVE | MACHINE_NODEVICE_LAN, layout_dblaxle )
