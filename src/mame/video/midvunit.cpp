@@ -80,8 +80,7 @@ void midvunit_device::video_start()
 
 void midvunit_state::video_start()
 {
-	uint8_t players = player_count();
-	for (uint8_t i = 0; i < players; ++i)
+	for (uint8_t i = 0; i < m_count; ++i)
 		m_player[i]->video_start();
 }
 
