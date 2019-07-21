@@ -513,13 +513,6 @@ READ16_MEMBER(midvunit_device::midvunit_dipswitches_r)
 
 READ32_MEMBER(midvunit_device::midvunit_irq_r)
 {
-	if (m_machine_type == 0)
-	{
-		uint16_t sdata = m_parent->get_link_bus();
-		sdata &= ~((m_link_data >> 4) & 0xF00);
-		logerror("midvunit_irq_r = %03X\n", sdata & 0x800);
-		m_maincpu->set_input_line(2, (sdata & 0x800) ? ASSERT_LINE : CLEAR_LINE);
-	}
 	return 4;
 }
 
@@ -532,16 +525,17 @@ READ32_MEMBER(midvunit_device::midvunit_comm_r)
 	}
 	else
 	{
-		uint16_t sdata = m_parent->get_link_bus();
-		sdata &= ~((m_link_data >> 4) & 0xF00);
-		if (m_link_flags != 0x20)
-			sdata &= ~0xFF;
-		if (m_link_data_read != sdata)
+		uint16_t data = m_parent->get_link_bus();
+		if (m_link_flags & 0x20) //COMCOE
+			data &= ~((m_link_data >> 4) & 0xf00);
+		if (m_link_flags & 0x40) //COMDOE
+			data &= ~0xff;
+		if (m_link_data_read != data)
 		{
-			logerror("midvunit_comm_r = %03X\n", sdata);
-			m_link_data_read = sdata;
+			logerror("midvunit_comm_r = %03X\n", data);
+			m_link_data_read = data;
 		}
-		return sdata << 16;
+		return data << 16;
 	}
 }
 
@@ -556,12 +550,12 @@ WRITE32_MEMBER(midvunit_device::midvunit_comm_w)
 		m_link_data = data >> 16;
 		if (m_link_data_write != m_link_data)
 		{
-			logerror("m_link_data = %03X\n", m_link_data);
+			logerror("m_link_data = %04X\n", m_link_data);
 			m_link_data_write = m_link_data;
 		}
 		break;
 		case 1:
-		m_link_flags = (data >> 24) & 0xE8;
+		m_link_flags = (data >> 24) & 0xe0;
 		logerror("m_link_flags = %02X\n", m_link_flags);
 		break;
 	}
@@ -569,9 +563,11 @@ WRITE32_MEMBER(midvunit_device::midvunit_comm_w)
 
 uint16_t midvunit_device::get_link_bus()
 {
-	uint16_t mask = (m_link_data >> 4) & 0xF00;
-	if (m_link_flags == 0x60)
-		mask |= 0xFF;
+	uint16_t mask = 0;
+	if (m_link_flags & 0x20) //COMCOE
+		mask |= (m_link_data >> 4) & 0xf00;
+	if (m_link_flags & 0x40) //COMDOE
+		mask |= 0xff;
 	return m_link_data & mask;
 }
 
