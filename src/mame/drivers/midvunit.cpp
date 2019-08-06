@@ -64,8 +64,9 @@ void midvunit_device::device_start()
 
 void midvunit_device::device_reset()
 {
-	m_dcs->reset_w(1);
-	m_dcs->reset_w(0);
+	//m_dcs->reset_w(1);
+	//m_dcs->reset_w(0);
+	m_link_flags = 0;
 
 	memcpy(m_ram_base, memregion("user1")->base(), 0x20000*4);
 	m_maincpu->reset();
@@ -74,8 +75,9 @@ void midvunit_device::device_reset()
 
 MACHINE_RESET_MEMBER(midvunit_device,midvplus)
 {
-	m_dcs->reset_w(1);
-	m_dcs->reset_w(0);
+	//m_dcs->reset_w(1);
+	//m_dcs->reset_w(0);
+	m_link_flags = 0;
 
 	memcpy(m_ram_base, memregion("user1")->base(), 0x20000*4);
 	m_maincpu->reset();
@@ -183,7 +185,7 @@ WRITE32_MEMBER(midvunit_device::midvunit_control_w)
 	//	m_watchdog->watchdog_reset();
 
 	/* bit 1 is the DCS sound reset */
-	m_dcs->reset_w((~m_control_data >> 1) & 1);
+	//m_dcs->reset_w((~m_control_data >> 1) & 1);
 
 	/* log anything unusual */
 	//if ((olddata ^ m_control_data) & ~0x00e8)
@@ -197,7 +199,7 @@ WRITE32_MEMBER(midvunit_device::crusnwld_control_w)
 	COMBINE_DATA(&m_control_data);
 
 	/* bit 11 is the DCS sound reset */
-	m_dcs->reset_w((~m_control_data >> 11) & 1);
+	//m_dcs->reset_w((~m_control_data >> 11) & 1);
 
 	/* bit 9 is the watchdog */
 	//if ((olddata ^ m_control_data) & 0x0200)
@@ -214,7 +216,7 @@ WRITE32_MEMBER(midvunit_device::crusnwld_control_w)
 WRITE32_MEMBER(midvunit_device::midvunit_sound_w)
 {
 	//logerror("Sound W = %02X\n", data);
-	m_dcs->data_w(data & 0xff);
+	//m_dcs->data_w(data & 0xff);
 }
 
 
@@ -1140,8 +1142,8 @@ void midvunit_state::common(machine_config &config, uint8_t type)
 	switch (machine_type)
 	{
 		case 0: m_count = 2; break;
-		case 1: m_count = 4; break;
-		case 2: m_count = 3; break;
+		case 1: m_count = 2; break;
+		case 2: m_count = 2; break;
 		case 3: m_count = 1; break;
 	}
 	for (uint8_t i = 0; i < m_count; ++i)
@@ -1150,14 +1152,14 @@ void midvunit_state::common(machine_config &config, uint8_t type)
 	if (machine_type == 3)
 	{
 		/* sound hardware */
-		DCS2_AUDIO_2115(config, m_dcs, 0);
-		m_dcs->set_dram_in_mb(2);
-		m_dcs->set_polling_offset(0x3839);
+		//DCS2_AUDIO_2115(config, m_dcs, 0);
+		//m_dcs->set_dram_in_mb(2);
+		//m_dcs->set_polling_offset(0x3839);
 	}
 	else
 	{
 		/* sound hardware */
-		DCS_AUDIO_2K(config, "dcs", 0);
+		//DCS_AUDIO_2K(config, "dcs", 0);
 	}
 }
 

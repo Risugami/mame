@@ -468,7 +468,7 @@ void device_scheduler::timeslice()
 				else if (delta >= exec->m_attoseconds_per_cycle)
 				{
 					// compute how many cycles we want to execute
-					int ran = exec->m_cycles_running = divu_64x32(u64(delta) >> exec->m_divshift, exec->m_divisor);
+					int ran = exec->m_cycles_running = 1;//divu_64x32(u64(delta) >> exec->m_divshift, exec->m_divisor);
 					LOG(("  cpu '%s': %d (%d cycles)\n", exec->device().tag(), delta, exec->m_cycles_running));
 
 					// if we're not suspended, actually execute
